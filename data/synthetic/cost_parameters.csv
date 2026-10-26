@@ -1,0 +1,5 @@
+dc_id,cost_per_mile_usd,fuel_price_usd_gal,driver_cost_per_hour_usd,overtime_multiplier,fixed_cost_per_route_usd,late_penalty_usd,co2_kg_per_gal
+DC-TEMPLE-TX,0.95,3.8,36.98,1.5,185.0,150.0,10.21
+DC-DALLAS-TX,1.03,4.13,41.42,1.5,185.0,225.0,10.21
+DC-CONCORD-NC,0.98,3.65,35.37,1.5,185.0,150.0,10.21
+DC-PHOENIX-AZ,0.86,4.13,39.44,1.5,185.0,225.0,10.21

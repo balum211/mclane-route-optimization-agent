@@ -1,0 +1,14 @@
+{
+  "event_id": "EVT-DEMO-CLS-01",
+  "dc_id": "DC-CONCORD-NC",
+  "event_date": "2026-10-27",
+  "event_min": 400,
+  "event_type": "ROAD_CLOSURE",
+  "source": "TRAFFIC_FEED",
+  "lat": 35.30,
+  "lon": -80.75,
+  "radius_miles": 5,
+  "delay_factor": 3.0,
+  "payload": {"end_min": 660},
+  "description": "I-85 S closed at exit 45 after a tanker rollover"
+}

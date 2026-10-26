@@ -1,0 +1,62 @@
+[
+  {
+    "name": "trailer_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Trailer id"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Home DC"
+  },
+  {
+    "name": "trailer_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "MULTI_TEMP (3-compartment reefer), DRY, STRAIGHT_REEFER"
+  },
+  {
+    "name": "length_ft",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Length in feet"
+  },
+  {
+    "name": "capacity_cases",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Total case capacity"
+  },
+  {
+    "name": "capacity_cold_cases",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Chilled + frozen case capacity (0 for dry vans)"
+  },
+  {
+    "name": "capacity_lbs",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Payload weight limit"
+  },
+  {
+    "name": "capacity_cube",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Cubic feet"
+  },
+  {
+    "name": "has_liftgate",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Liftgate fitted"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "AVAILABLE, MAINTENANCE"
+  }
+]

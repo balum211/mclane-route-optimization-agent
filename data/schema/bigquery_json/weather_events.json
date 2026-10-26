@@ -1,0 +1,68 @@
+[
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Event id"
+  },
+  {
+    "name": "event_date",
+    "type": "DATE",
+    "mode": "REQUIRED",
+    "description": "Date"
+  },
+  {
+    "name": "alert_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "THUNDERSTORM, ICE, HEAT, FLOOD, WIND"
+  },
+  {
+    "name": "severity",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "ADVISORY, WATCH, WARNING"
+  },
+  {
+    "name": "description",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Description"
+  },
+  {
+    "name": "lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Centre latitude"
+  },
+  {
+    "name": "lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Centre longitude"
+  },
+  {
+    "name": "radius_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Affected radius"
+  },
+  {
+    "name": "start_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Start"
+  },
+  {
+    "name": "end_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "End"
+  },
+  {
+    "name": "speed_factor",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Travel-time multiplier"
+  }
+]

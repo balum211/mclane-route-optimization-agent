@@ -1,0 +1,98 @@
+[
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Event id"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "event_date",
+    "type": "DATE",
+    "mode": "REQUIRED",
+    "description": "Operating date"
+  },
+  {
+    "name": "event_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Time the event happened, minutes after midnight"
+  },
+  {
+    "name": "event_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "DELAY, BREAKDOWN, ORDER_ADDED, ORDER_CANCELLED, ROAD_CLOSURE, NO_SHOW, REEFER_TEMP_ALERT"
+  },
+  {
+    "name": "source",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "TELEMATICS, DRIVER_APP, TMS, TRAFFIC_FEED, CUSTOMER"
+  },
+  {
+    "name": "tractor_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Truck involved (resolves to its route in any plan)"
+  },
+  {
+    "name": "customer_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Customer involved"
+  },
+  {
+    "name": "order_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Order involved"
+  },
+  {
+    "name": "delay_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Reported delay in minutes"
+  },
+  {
+    "name": "lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Event latitude"
+  },
+  {
+    "name": "lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Event longitude"
+  },
+  {
+    "name": "radius_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Affected radius (closures)"
+  },
+  {
+    "name": "delay_factor",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Travel-time multiplier (closures)"
+  },
+  {
+    "name": "payload",
+    "type": "JSON",
+    "mode": "NULLABLE",
+    "description": "Extra fields, e.g. cases for an added order or reefer temperature"
+  },
+  {
+    "name": "description",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "What happened"
+  }
+]

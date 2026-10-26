@@ -1,0 +1,92 @@
+[
+  {
+    "name": "plan_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Plan id"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "route_date",
+    "type": "DATE",
+    "mode": "NULLABLE",
+    "description": "Delivery date"
+  },
+  {
+    "name": "scenario",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "BASE, WHAT_IF, REOPTIMIZE"
+  },
+  {
+    "name": "parameters",
+    "type": "JSON",
+    "mode": "NULLABLE",
+    "description": "Solver parameters"
+  },
+  {
+    "name": "orders_planned",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Orders routed"
+  },
+  {
+    "name": "orders_dropped",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Orders the solver could not fit"
+  },
+  {
+    "name": "routes_used",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Trucks used"
+  },
+  {
+    "name": "total_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Miles"
+  },
+  {
+    "name": "total_cost_usd",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Cost"
+  },
+  {
+    "name": "baseline_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "TMW static plan miles"
+  },
+  {
+    "name": "baseline_cost_usd",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "TMW static plan cost"
+  },
+  {
+    "name": "late_stops",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Late stops"
+  },
+  {
+    "name": "co2_kg",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Estimated CO2"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Created"
+  }
+]

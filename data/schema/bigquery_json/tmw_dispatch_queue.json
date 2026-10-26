@@ -1,0 +1,44 @@
+[
+  {
+    "name": "message_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Message id"
+  },
+  {
+    "name": "plan_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Plan id"
+  },
+  {
+    "name": "route_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Route id"
+  },
+  {
+    "name": "message_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "CREATE_MOVEMENT, UPDATE_STOPS, CANCEL"
+  },
+  {
+    "name": "payload",
+    "type": "JSON",
+    "mode": "NULLABLE",
+    "description": "TMW-shaped payload"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "QUEUED, SENT, ACKED, FAILED"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Created"
+  }
+]

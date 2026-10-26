@@ -1,0 +1,50 @@
+[
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "cost_per_mile_usd",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Variable cost per mile (fuel excluded)"
+  },
+  {
+    "name": "fuel_price_usd_gal",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Diesel price"
+  },
+  {
+    "name": "driver_cost_per_hour_usd",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Loaded driver wage"
+  },
+  {
+    "name": "overtime_multiplier",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Multiplier after 10 hours"
+  },
+  {
+    "name": "fixed_cost_per_route_usd",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Fixed cost of dispatching a truck"
+  },
+  {
+    "name": "late_penalty_usd",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Service penalty per late stop"
+  },
+  {
+    "name": "co2_kg_per_gal",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "CO2 per gallon of diesel"
+  }
+]

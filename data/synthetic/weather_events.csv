@@ -1,0 +1,5 @@
+event_id,event_date,alert_type,severity,description,lat,lon,radius_miles,start_min,end_min,speed_factor
+WX-0001,2026-10-28,THUNDERSTORM,WARNING,"Severe storms with hail, Austin to Round Rock",30.45,-97.7,18,300,600,1.35
+WX-0002,2026-10-27,WIND,ADVISORY,Dense fog along I-85 corridor until mid-morning,35.3,-80.95,22,180,570,1.25
+WX-0003,2026-10-29,WIND,WARNING,"Dust storm (haboob) west Valley, visibility near zero",33.45,-112.45,15,420,600,1.6
+WX-0004,2026-10-30,FLOOD,WATCH,Flash flood watch Dallas-Fort Worth,32.8,-97.1,20,0,720,1.2

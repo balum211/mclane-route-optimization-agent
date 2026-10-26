@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+route_optimizer/.env
+data/mclane_routing.db
+.pytest_cache/
+.adk/
+deployment/.agent_engine_build/
+*.egg-info/
+route_optimizer/mclane_routing.db

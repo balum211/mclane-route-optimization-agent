@@ -1,0 +1,62 @@
+[
+  {
+    "name": "delivery_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Delivery id"
+  },
+  {
+    "name": "customer_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Customer"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "delivery_date",
+    "type": "DATE",
+    "mode": "NULLABLE",
+    "description": "Date"
+  },
+  {
+    "name": "planned_arrival_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Planned arrival"
+  },
+  {
+    "name": "actual_arrival_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Actual arrival"
+  },
+  {
+    "name": "dwell_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Actual time on site"
+  },
+  {
+    "name": "cases",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Cases delivered"
+  },
+  {
+    "name": "on_time",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Arrived inside window"
+  },
+  {
+    "name": "exception_code",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "NONE, TRAFFIC, WEATHER, DOCK_BUSY, LATE_DISPATCH, REFUSED"
+  }
+]

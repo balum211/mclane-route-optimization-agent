@@ -1,0 +1,68 @@
+[
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Event id"
+  },
+  {
+    "name": "event_date",
+    "type": "DATE",
+    "mode": "REQUIRED",
+    "description": "Date"
+  },
+  {
+    "name": "event_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "CLOSURE, ACCIDENT, CONSTRUCTION, CONGESTION"
+  },
+  {
+    "name": "corridor",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Road, e.g. I-35 N"
+  },
+  {
+    "name": "description",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Human readable description"
+  },
+  {
+    "name": "lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Centre latitude"
+  },
+  {
+    "name": "lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Centre longitude"
+  },
+  {
+    "name": "radius_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Affected radius"
+  },
+  {
+    "name": "start_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Start, minutes after midnight"
+  },
+  {
+    "name": "end_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "End, minutes after midnight"
+  },
+  {
+    "name": "delay_factor",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Travel-time multiplier inside the radius"
+  }
+]

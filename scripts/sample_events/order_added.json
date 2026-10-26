@@ -1,0 +1,11 @@
+{
+  "event_id": "EVT-DEMO-ADD-01",
+  "dc_id": "DC-DALLAS-TX",
+  "event_date": "2026-10-27",
+  "event_min": 300,
+  "event_type": "ORDER_ADDED",
+  "source": "TMS",
+  "customer_id": "C-DAL-0002",
+  "payload": {"dry_cases": 40, "chill_cases": 60, "frozen_cases": 50, "priority": "HOT"},
+  "description": "Restaurant ran out of fries and chicken before lunch rush, emergency order"
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "name": "driver_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Driver id (TMW mpp_id)"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Home DC"
+  },
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Synthetic name"
+  },
+  {
+    "name": "hos_drive_remaining_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Remaining driving minutes today (11h rule)"
+  },
+  {
+    "name": "hos_duty_remaining_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Remaining on-duty minutes today (14h rule)"
+  },
+  {
+    "name": "shift_start_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Earliest start, minutes after midnight"
+  },
+  {
+    "name": "cdl_class",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "A or B"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "AVAILABLE, PTO"
+  }
+]

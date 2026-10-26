@@ -1,0 +1,12 @@
+{
+  "event_id": "EVT-DEMO-BRK-01",
+  "dc_id": "DC-TEMPLE-TX",
+  "event_date": "2026-10-27",
+  "event_min": 470,
+  "event_type": "BREAKDOWN",
+  "source": "TELEMATICS",
+  "tractor_id": "TRC-TEM-007",
+  "lat": 31.12,
+  "lon": -97.70,
+  "description": "Engine derate (DEF fault) on I-14 near Killeen, unit limited to 5 mph"
+}
