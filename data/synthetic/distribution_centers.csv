@@ -1,0 +1,5 @@
+dc_id,name,business_unit,city,state,lat,lon,dock_doors,dispatch_start_min,dispatch_end_min,timezone
+DC-TEMPLE-TX,McLane Temple (Grocery),GROCERY,Temple,TX,31.0982,-97.3428,64,120,600,America/Chicago
+DC-DALLAS-TX,McLane Foodservice Dallas,FOODSERVICE,Carrollton,TX,32.9537,-96.8903,48,0,480,America/Chicago
+DC-CONCORD-NC,McLane Concord (Grocery),GROCERY,Concord,NC,35.4088,-80.5795,56,120,600,America/New_York
+DC-PHOENIX-AZ,McLane Foodservice Phoenix,FOODSERVICE,Goodyear,AZ,33.4353,-112.3577,40,0,480,America/Phoenix

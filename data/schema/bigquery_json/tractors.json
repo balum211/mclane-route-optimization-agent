@@ -1,0 +1,32 @@
+[
+  {
+    "name": "tractor_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Tractor id"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Home DC"
+  },
+  {
+    "name": "unit_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "TRACTOR or STRAIGHT_TRUCK"
+  },
+  {
+    "name": "mpg",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Average fuel economy"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "AVAILABLE, MAINTENANCE"
+  }
+]

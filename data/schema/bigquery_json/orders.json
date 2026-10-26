@@ -1,0 +1,74 @@
+[
+  {
+    "name": "order_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Order id"
+  },
+  {
+    "name": "tmw_ord_hdrnumber",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "TMW ord_hdrnumber"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Originating DC"
+  },
+  {
+    "name": "customer_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Ship-to customer"
+  },
+  {
+    "name": "delivery_date",
+    "type": "DATE",
+    "mode": "REQUIRED",
+    "description": "Requested delivery date"
+  },
+  {
+    "name": "dry_cases",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Ambient cases"
+  },
+  {
+    "name": "chill_cases",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Refrigerated cases"
+  },
+  {
+    "name": "frozen_cases",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Frozen cases"
+  },
+  {
+    "name": "weight_lbs",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Gross weight"
+  },
+  {
+    "name": "cube_ft3",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Cubic feet"
+  },
+  {
+    "name": "priority",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "STANDARD, HOT (must deliver), FLEX (can move a day)"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "OPEN, PLANNED, DISPATCHED, DELIVERED"
+  }
+]

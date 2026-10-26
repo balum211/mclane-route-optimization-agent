@@ -1,0 +1,44 @@
+[
+  {
+    "name": "notification_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Notification id"
+  },
+  {
+    "name": "plan_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Plan id"
+  },
+  {
+    "name": "customer_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Customer"
+  },
+  {
+    "name": "channel",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "SMS, EMAIL, EDI_214"
+  },
+  {
+    "name": "message",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Message body"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "DRAFT, SENT"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Created"
+  }
+]

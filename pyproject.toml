@@ -1,0 +1,24 @@
+[project]
+name = "mclane-route-optimization-agent"
+version = "0.1.0"
+description = "Dynamic route optimization multi-agent system for McLane (Google ADK + OR-Tools + BigQuery/AlloyDB)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "google-adk>=2.13.0",
+  "google-genai>=1.0",
+  "ortools>=9.12",
+  "requests>=2.31",
+  "google-cloud-bigquery>=3.25",
+  "sqlalchemy>=2.0",
+  "pg8000>=1.31",
+  "google-cloud-alloydb-connector[pg8000]>=1.4",
+  "google-cloud-pubsub>=2.21",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]

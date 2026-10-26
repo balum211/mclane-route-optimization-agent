@@ -1,0 +1,104 @@
+[
+  {
+    "name": "route_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Route id"
+  },
+  {
+    "name": "plan_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Optimization plan id (NULL for static routes)"
+  },
+  {
+    "name": "source",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "TMW_STATIC or AI_OPTIMIZED"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "route_date",
+    "type": "DATE",
+    "mode": "REQUIRED",
+    "description": "Delivery date"
+  },
+  {
+    "name": "tractor_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Assigned tractor"
+  },
+  {
+    "name": "trailer_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Assigned trailer"
+  },
+  {
+    "name": "driver_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Assigned driver"
+  },
+  {
+    "name": "depart_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Planned DC departure"
+  },
+  {
+    "name": "return_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Planned DC return"
+  },
+  {
+    "name": "stop_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of stops"
+  },
+  {
+    "name": "total_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Planned road miles"
+  },
+  {
+    "name": "total_duration_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Planned duration"
+  },
+  {
+    "name": "total_cases",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Cases on board"
+  },
+  {
+    "name": "est_cost_usd",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Estimated cost"
+  },
+  {
+    "name": "late_stops",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Stops arriving after window close"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "PLANNED, DISPATCHED, IN_PROGRESS, COMPLETE"
+  }
+]

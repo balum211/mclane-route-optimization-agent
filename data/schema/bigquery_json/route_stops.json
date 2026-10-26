@@ -1,0 +1,50 @@
+[
+  {
+    "name": "route_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Route id"
+  },
+  {
+    "name": "stop_seq",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "1-based sequence"
+  },
+  {
+    "name": "order_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Order delivered"
+  },
+  {
+    "name": "customer_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Customer"
+  },
+  {
+    "name": "eta_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Planned arrival, minutes after midnight"
+  },
+  {
+    "name": "etd_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Planned departure"
+  },
+  {
+    "name": "miles_from_prev",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Leg miles"
+  },
+  {
+    "name": "window_ok",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Arrival inside the receiving window"
+  }
+]

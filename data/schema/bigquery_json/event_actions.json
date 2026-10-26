@@ -1,0 +1,92 @@
+[
+  {
+    "name": "action_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Action id"
+  },
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Triggering event"
+  },
+  {
+    "name": "source_plan_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Plan that was disrupted"
+  },
+  {
+    "name": "new_plan_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Plan holding the re-planned routes"
+  },
+  {
+    "name": "affected_routes",
+    "type": "JSON",
+    "mode": "NULLABLE",
+    "description": "Routes re-planned"
+  },
+  {
+    "name": "untouched_routes",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Routes left exactly as they were"
+  },
+  {
+    "name": "cost_impact_usd",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Cost of the new plan minus the original plan for the affected work"
+  },
+  {
+    "name": "late_stops_before",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Late or failed stops if nothing is changed"
+  },
+  {
+    "name": "late_stops_after",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Late stops after re-plan"
+  },
+  {
+    "name": "requires_approval",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Escalated to a human dispatcher"
+  },
+  {
+    "name": "escalation_reasons",
+    "type": "JSON",
+    "mode": "NULLABLE",
+    "description": "Why it was escalated"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "AUTO_APPLIED, PENDING_APPROVAL, NO_ACTION"
+  },
+  {
+    "name": "explanation",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Plain-language summary for dispatchers"
+  },
+  {
+    "name": "latency_s",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Seconds from event intake to re-plan"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Created"
+  }
+]

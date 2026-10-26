@@ -1,0 +1,122 @@
+[
+  {
+    "name": "customer_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Customer / ship-to id"
+  },
+  {
+    "name": "tmw_cmp_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Trimble TMW company id (cmp_id)"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Servicing DC"
+  },
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Store or restaurant name"
+  },
+  {
+    "name": "banner",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Chain banner"
+  },
+  {
+    "name": "segment",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "CONVENIENCE, GROCERY, MASS_MERCHANT, QSR, CASUAL_DINING"
+  },
+  {
+    "name": "address",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Street address (synthetic)"
+  },
+  {
+    "name": "city",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "City"
+  },
+  {
+    "name": "state",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "State"
+  },
+  {
+    "name": "lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Latitude"
+  },
+  {
+    "name": "lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Longitude"
+  },
+  {
+    "name": "window_start_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Receiving window open, minutes after midnight"
+  },
+  {
+    "name": "window_end_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Receiving window close, minutes after midnight"
+  },
+  {
+    "name": "std_service_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Standard unload time in minutes (TMS master data)"
+  },
+  {
+    "name": "hard_window",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Dock appointment: window close is a hard constraint"
+  },
+  {
+    "name": "key_drop",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Unattended key-drop delivery allowed"
+  },
+  {
+    "name": "requires_liftgate",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Site needs a liftgate / straight truck"
+  },
+  {
+    "name": "max_vehicle_length_ft",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Longest vehicle the site can take"
+  },
+  {
+    "name": "priority_tier",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "1 = strategic account, 3 = standard"
+  },
+  {
+    "name": "delivery_days",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Scheduled delivery days, e.g. MON,WED,FRI"
+  }
+]

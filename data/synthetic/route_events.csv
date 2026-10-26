@@ -1,0 +1,9 @@
+event_id,dc_id,event_date,event_min,event_type,source,tractor_id,customer_id,order_id,delay_min,lat,lon,radius_miles,delay_factor,payload,description
+EVT-TEM-01,DC-TEMPLE-TX,2026-10-27,465,BREAKDOWN,TELEMATICS,TRC-TEM-003,,,,31.07,-97.45,,,,"Air-brake fault code, unit out of service on US-190 near Belton"
+EVT-TEM-02,DC-TEMPLE-TX,2026-10-27,435,DELAY,TELEMATICS,TRC-TEM-005,,,45,,,,,,Truck stopped in I-35 N closure queue south of Waco
+EVT-TEM-03,DC-TEMPLE-TX,2026-10-27,380,ORDER_ADDED,TMS,,C-TEM-0003,,,,,,,"{""dry_cases"": 60, ""chill_cases"": 45, ""frozen_cases"": 20, ""priority"": ""HOT""}","Emergency fill-in order from BigBox Depot #2353 (cooler failure, needs product today)"
+EVT-TEM-04,DC-TEMPLE-TX,2026-10-27,330,ORDER_CANCELLED,CUSTOMER,,C-TEM-0110,O-20261027-TEM-0070,,,,,,,"Store closed for remodel, order cancelled"
+EVT-DAL-01,DC-DALLAS-TX,2026-10-27,420,NO_SHOW,DRIVER_APP,,C-DAL-0004,O-20261027-DAL-0001,,,,,,,"Restaurant not open at arrival, no key-drop on file"
+EVT-DAL-02,DC-DALLAS-TX,2026-10-27,410,REEFER_TEMP_ALERT,TELEMATICS,TRC-DAL-002,,,,,,,,"{""zone"": ""FROZEN"", ""temp_f"": 18, ""setpoint_f"": -10}",Frozen compartment reading 18F and rising (setpoint -10F)
+EVT-CON-01,DC-CONCORD-NC,2026-10-27,480,DELAY,DRIVER_APP,TRC-CON-004,,,25,,,,,,"Dock congestion at previous stop, driver waiting for a door"
+EVT-PHO-01,DC-PHOENIX-AZ,2026-10-27,390,ROAD_CLOSURE,TRAFFIC_FEED,,,,,33.4,-111.83,4.0,3.0,,US-60 closed both directions at Mesa Dr after a fuel spill

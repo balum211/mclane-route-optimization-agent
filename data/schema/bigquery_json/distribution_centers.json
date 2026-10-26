@@ -1,0 +1,68 @@
+[
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "DC identifier, e.g. DC-TEMPLE-TX"
+  },
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Display name"
+  },
+  {
+    "name": "business_unit",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "GROCERY (convenience/retail) or FOODSERVICE (restaurants)"
+  },
+  {
+    "name": "city",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "City"
+  },
+  {
+    "name": "state",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "State code"
+  },
+  {
+    "name": "lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Latitude"
+  },
+  {
+    "name": "lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Longitude"
+  },
+  {
+    "name": "dock_doors",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Outbound dock doors"
+  },
+  {
+    "name": "dispatch_start_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Earliest truck departure, minutes after midnight"
+  },
+  {
+    "name": "dispatch_end_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Latest truck departure, minutes after midnight"
+  },
+  {
+    "name": "timezone",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "IANA timezone"
+  }
+]

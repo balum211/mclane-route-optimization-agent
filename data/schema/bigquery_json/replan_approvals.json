@@ -1,0 +1,38 @@
+[
+  {
+    "name": "approval_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Approval id"
+  },
+  {
+    "name": "action_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Action decided"
+  },
+  {
+    "name": "decision",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "APPROVED or REJECTED"
+  },
+  {
+    "name": "decided_by",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "User"
+  },
+  {
+    "name": "notes",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Notes"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Created"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "event_id": "EVT-DEMO-DLY-01",
+  "dc_id": "DC-PHOENIX-AZ",
+  "event_date": "2026-10-27",
+  "event_min": 420,
+  "event_type": "DELAY",
+  "source": "TELEMATICS",
+  "tractor_id": "TRC-PHO-003",
+  "delay_min": 35,
+  "description": "GPS shows truck stationary 35 min in I-10 construction zone"
+}

@@ -1,0 +1,28 @@
+event_id,event_date,event_type,corridor,description,lat,lon,radius_miles,start_min,end_min,delay_factor
+TRF-0001,2026-10-27,CLOSURE,I-35 N,Bridge inspection closes northbound lanes south of Waco,31.47,-97.17,7,300,630,2.4
+TRF-0002,2026-10-27,ACCIDENT,I-635 E,"Multi-vehicle crash near Garland, 2 right lanes blocked",32.91,-96.66,5,360,540,1.9
+TRF-0003,2026-10-27,CONSTRUCTION,I-10 E,Night paving between Tempe and Chandler running late,33.37,-111.92,5,240,600,1.5
+TRF-0004,2026-10-28,CONGESTION,I-85 S,"Heavy congestion through Charlotte, event traffic",35.25,-80.82,9,360,600,1.6
+TRF-0005,2026-10-28,ACCIDENT,SH-121,Overturned trailer near Frisco,33.12,-96.82,4,330,510,2.1
+TRF-0006,2026-10-29,CLOSURE,US-190,Full closure for utility work between Killeen and Belton,31.09,-97.6,5,240,720,2.2
+TRF-0007,2026-10-30,CONSTRUCTION,Loop 202,Lane restrictions near Gilbert,33.36,-111.77,4,300,660,1.4
+TRF-0009,2026-10-27,CONGESTION,Austin core,Recurring AM peak congestion in Austin,30.2672,-97.7431,9,390,540,1.35
+TRF-0010,2026-10-27,CONGESTION,Dallas core,Recurring AM peak congestion in Dallas,32.7767,-96.797,9,390,540,1.35
+TRF-0011,2026-10-27,CONGESTION,Charlotte core,Recurring AM peak congestion in Charlotte,35.2271,-80.8431,9,390,540,1.35
+TRF-0012,2026-10-27,CONGESTION,Phoenix core,Recurring AM peak congestion in Phoenix,33.4484,-112.074,9,390,540,1.35
+TRF-0013,2026-10-28,CONGESTION,Austin core,Recurring AM peak congestion in Austin,30.2672,-97.7431,9,390,540,1.35
+TRF-0014,2026-10-28,CONGESTION,Dallas core,Recurring AM peak congestion in Dallas,32.7767,-96.797,9,390,540,1.35
+TRF-0015,2026-10-28,CONGESTION,Charlotte core,Recurring AM peak congestion in Charlotte,35.2271,-80.8431,9,390,540,1.35
+TRF-0016,2026-10-28,CONGESTION,Phoenix core,Recurring AM peak congestion in Phoenix,33.4484,-112.074,9,390,540,1.35
+TRF-0017,2026-10-29,CONGESTION,Austin core,Recurring AM peak congestion in Austin,30.2672,-97.7431,9,390,540,1.35
+TRF-0018,2026-10-29,CONGESTION,Dallas core,Recurring AM peak congestion in Dallas,32.7767,-96.797,9,390,540,1.35
+TRF-0019,2026-10-29,CONGESTION,Charlotte core,Recurring AM peak congestion in Charlotte,35.2271,-80.8431,9,390,540,1.35
+TRF-0020,2026-10-29,CONGESTION,Phoenix core,Recurring AM peak congestion in Phoenix,33.4484,-112.074,9,390,540,1.35
+TRF-0021,2026-10-30,CONGESTION,Austin core,Recurring AM peak congestion in Austin,30.2672,-97.7431,9,390,540,1.35
+TRF-0022,2026-10-30,CONGESTION,Dallas core,Recurring AM peak congestion in Dallas,32.7767,-96.797,9,390,540,1.35
+TRF-0023,2026-10-30,CONGESTION,Charlotte core,Recurring AM peak congestion in Charlotte,35.2271,-80.8431,9,390,540,1.35
+TRF-0024,2026-10-30,CONGESTION,Phoenix core,Recurring AM peak congestion in Phoenix,33.4484,-112.074,9,390,540,1.35
+TRF-0025,2026-11-02,CONGESTION,Austin core,Recurring AM peak congestion in Austin,30.2672,-97.7431,9,390,540,1.35
+TRF-0026,2026-11-02,CONGESTION,Dallas core,Recurring AM peak congestion in Dallas,32.7767,-96.797,9,390,540,1.35
+TRF-0027,2026-11-02,CONGESTION,Charlotte core,Recurring AM peak congestion in Charlotte,35.2271,-80.8431,9,390,540,1.35
+TRF-0028,2026-11-02,CONGESTION,Phoenix core,Recurring AM peak congestion in Phoenix,33.4484,-112.074,9,390,540,1.35
