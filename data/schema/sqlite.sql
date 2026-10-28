@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS customers (
   state TEXT,
   lat REAL,
   lon REAL,
+  geocode_source TEXT,
+  geocode_confidence TEXT,
   window_start_min INTEGER,
   window_end_min INTEGER,
   std_service_min INTEGER,
@@ -35,6 +37,31 @@ CREATE TABLE IF NOT EXISTS customers (
   priority_tier INTEGER,
   delivery_days TEXT,
   PRIMARY KEY (customer_id)
+);
+
+CREATE TABLE IF NOT EXISTS geofences (
+  geofence_id TEXT NOT NULL,
+  entity_type TEXT,
+  entity_id TEXT NOT NULL,
+  dc_id TEXT,
+  center_lat REAL,
+  center_lon REAL,
+  radius_m INTEGER,
+  source TEXT,
+  active INTEGER,
+  PRIMARY KEY (geofence_id)
+);
+
+CREATE TABLE IF NOT EXISTS otd_policies (
+  segment_group TEXT NOT NULL,
+  segments TEXT,
+  measure_against TEXT,
+  early_tolerance_min INTEGER,
+  late_tolerance_min INTEGER,
+  target_pct REAL,
+  arrival_event TEXT,
+  description TEXT,
+  PRIMARY KEY (segment_group)
 );
 
 CREATE TABLE IF NOT EXISTS tractors (
@@ -101,6 +128,8 @@ CREATE TABLE IF NOT EXISTS routes (
   return_min INTEGER,
   stop_count INTEGER,
   total_miles REAL,
+  pcmiler_miles REAL,
+  mileage_source TEXT,
   total_duration_min INTEGER,
   total_cases INTEGER,
   est_cost_usd REAL,
@@ -117,6 +146,7 @@ CREATE TABLE IF NOT EXISTS route_stops (
   eta_min INTEGER,
   etd_min INTEGER,
   miles_from_prev REAL,
+  pcmiler_leg_miles REAL,
   window_ok INTEGER,
   PRIMARY KEY (route_id, stop_seq)
 );
@@ -126,9 +156,14 @@ CREATE TABLE IF NOT EXISTS delivery_history (
   customer_id TEXT NOT NULL,
   dc_id TEXT,
   delivery_date TEXT,
+  tractor_id TEXT,
   planned_arrival_min INTEGER,
   actual_arrival_min INTEGER,
+  actual_departure_min INTEGER,
+  arrival_source TEXT,
   dwell_min INTEGER,
+  gps_stop_lat REAL,
+  gps_stop_lon REAL,
   cases INTEGER,
   on_time INTEGER,
   exception_code TEXT,
@@ -236,8 +271,10 @@ CREATE TABLE IF NOT EXISTS optimization_runs (
   orders_dropped INTEGER,
   routes_used INTEGER,
   total_miles REAL,
+  pcmiler_miles REAL,
   total_cost_usd REAL,
   baseline_miles REAL,
+  baseline_pcmiler_miles REAL,
   baseline_cost_usd REAL,
   late_stops INTEGER,
   co2_kg REAL,
@@ -265,4 +302,48 @@ CREATE TABLE IF NOT EXISTS customer_notifications (
   status TEXT,
   created_at TEXT,
   PRIMARY KEY (notification_id)
+);
+
+CREATE TABLE IF NOT EXISTS gps_pings (
+  ping_id TEXT NOT NULL,
+  dc_id TEXT NOT NULL,
+  ping_date TEXT NOT NULL,
+  ping_min INTEGER,
+  tractor_id TEXT NOT NULL,
+  route_id TEXT,
+  lat REAL,
+  lon REAL,
+  speed_mph REAL,
+  PRIMARY KEY (ping_id)
+);
+
+CREATE TABLE IF NOT EXISTS geofence_events (
+  geofence_event_id TEXT NOT NULL,
+  dc_id TEXT,
+  event_date TEXT,
+  tractor_id TEXT,
+  route_id TEXT,
+  geofence_id TEXT,
+  entity_type TEXT,
+  entity_id TEXT,
+  arrive_min INTEGER,
+  depart_min INTEGER,
+  dwell_min INTEGER,
+  planned_service_min INTEGER,
+  created_at TEXT,
+  PRIMARY KEY (geofence_event_id)
+);
+
+CREATE TABLE IF NOT EXISTS master_data_updates (
+  update_id TEXT NOT NULL,
+  dc_id TEXT,
+  customer_id TEXT NOT NULL,
+  field TEXT,
+  old_value TEXT,
+  new_value TEXT,
+  reason TEXT,
+  evidence TEXT,
+  status TEXT,
+  created_at TEXT,
+  PRIMARY KEY (update_id)
 );

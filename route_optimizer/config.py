@@ -57,6 +57,12 @@ class Settings:
   reefer_max_temp_f: float = field(default_factory=lambda: float(_env("REEFER_MAX_TEMP_F", "10")))
   pubsub_topic: str = field(default_factory=lambda: _env("PUBSUB_TOPIC", "mclane-route-events"))
   pubsub_subscription: str = field(default_factory=lambda: _env("PUBSUB_SUBSCRIPTION", "mclane-route-events-agent"))
+  # Trimble PC*MILER (mileage of record). No key = labelled offline emulation.
+  pcmiler_api_key: str = field(default_factory=lambda: _env("PCMILER_API_KEY"))
+  pcmiler_routing_type: str = field(default_factory=lambda: _env("PCMILER_ROUTING_TYPE", "PRACTICAL").upper())
+  # Optional MCP Toolbox for Databases server (tools.yaml) for read-only SQL tools.
+  toolbox_url: str = field(default_factory=lambda: _env("TOOLBOX_URL"))
+  toolbox_toolset: str = field(default_factory=lambda: _env("TOOLBOX_TOOLSET", "mclane-analytics"))
   tmw_api_base_url: str = field(default_factory=lambda: _env("TMW_API_BASE_URL"))
   tmw_api_token: str = field(default_factory=lambda: _env("TMW_API_TOKEN"))
 

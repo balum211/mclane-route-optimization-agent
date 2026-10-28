@@ -28,6 +28,13 @@ A single schema definition renders SQLite (offline demo), BigQuery (analytics an
 Every tool and event type has tests that run offline against synthetic data, with no LLM calls. Agent wiring
 is tested with a scripted model.
 
+### VII. McLane measures of record
+Mileage is Trimble PC*MILER (practical) wherever it reaches TMW, pay or billing, and offline estimates are
+labelled `PCMILER_EMULATED`. Arrival, departure and dwell come from geofences (driver app as the fallback).
+On-time delivery is reported separately for Retail (receiving-window close) and Restaurant (scheduled time
+±30 min, inside the window), defined once in `otd.py` / `otd_policies`. Customer master-data changes
+(dwell standard, geocode) need confirmation, are insert-only and are queued to TMW.
+
 ## Operational constraints
 - Python 3.11+, Google ADK, Gemini on Vertex AI, OR-Tools. Deploy to Vertex AI Agent Engine and register in
   Gemini Enterprise.
@@ -38,4 +45,4 @@ is tested with a scripted model.
 This constitution overrides conflicting guidance in specs or prompts. Amendments need a note in the PR
 description explaining the principle changed and why.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-26 | **Last Amended**: 2026-10-26
+**Version**: 1.1.0 | **Ratified**: 2026-10-26 | **Last Amended**: 2026-10-28 (added VII for PC*MILER, geofence and OTD)

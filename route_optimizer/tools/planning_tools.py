@@ -7,11 +7,13 @@ from typing import Optional
 
 from google.adk.tools import ToolContext
 
+from .. import pcmiler
 from ..config import get_settings
 from ..db.repository import get_repository
 from ..geo import build_matrix, fmt_time
 from ..optimizer import PlanResult, SolverOptions, Stop, simulate_route, solve
-from ._common import Problem, ToolError, load_problem, new_id, now_ts, q
+from ..otd import plan_otd
+from ._common import Problem, ToolError, load_otd_policies, load_problem, new_id, now_ts, q
 
 MAX_ROUTES_IN_REPLY = 25
 
@@ -61,7 +63,7 @@ def evaluate_static_plan(problem: Problem) -> Optional[PlanResult]:
 
 def _savings(base: dict, opt: dict) -> dict:
   out = {}
-  for k in ("routes", "miles", "duty_hours", "cost_usd", "co2_kg", "late_stops"):
+  for k in ("routes", "miles", "pcmiler_miles", "duty_hours", "cost_usd", "co2_kg", "late_stops"):
     b, o = base.get(k, 0), opt.get(k, 0)
     out[k] = {
         "tmw_static": b,
@@ -70,6 +72,11 @@ def _savings(base: dict, opt: dict) -> dict:
         "change_pct": round(100 * (o - b) / b, 1) if b else None,
     }
   return out
+
+
+def _otd_brief(s: dict) -> dict:
+  return {g: {"stops": s[g]["deliveries"], "otd_pct": s[g]["otd_pct"], "target_pct": s[g]["target_pct"]}
+          for g in ("RETAIL", "RESTAURANT") if s[g]["deliveries"]}
 
 
 def _persist(plan_id: str, scenario: str, problem: Problem, result: PlanResult, params: dict, baseline: Optional[dict]):
@@ -81,14 +88,15 @@ def _persist(plan_id: str, scenario: str, problem: Problem, result: PlanResult, 
         "route_id": rid, "plan_id": plan_id, "source": "AI_OPTIMIZED", "dc_id": problem.dc["dc_id"],
         "route_date": problem.date, "tractor_id": r.vehicle.tractor_id, "trailer_id": r.vehicle.trailer_id,
         "driver_id": r.vehicle.driver_id, "depart_min": r.depart_min, "return_min": r.return_min,
-        "stop_count": len(r.stops), "total_miles": round(r.total_miles, 1), "total_duration_min": r.duration_min,
+        "stop_count": len(r.stops), "total_miles": round(r.total_miles, 1), "pcmiler_miles": r.pcmiler_miles,
+        "mileage_source": r.mileage_source, "total_duration_min": r.duration_min,
         "total_cases": r.cases, "est_cost_usd": round(r.cost_usd, 2), "late_stops": r.late_stops, "status": "PLANNED",
     })
     for s in r.stops:
       stop_rows.append({
           "route_id": rid, "stop_seq": s.seq, "order_id": s.order_id, "customer_id": s.customer_id,
           "eta_min": s.arrival_min, "etd_min": s.departure_min, "miles_from_prev": round(s.miles_from_prev, 1),
-          "window_ok": s.late_min == 0,
+          "pcmiler_leg_miles": s.pcmiler_leg_miles, "window_ok": s.late_min == 0,
       })
   t = result.totals
   repo.insert("routes", route_rows)
@@ -96,8 +104,9 @@ def _persist(plan_id: str, scenario: str, problem: Problem, result: PlanResult, 
   repo.insert("optimization_runs", [{
       "plan_id": plan_id, "dc_id": problem.dc["dc_id"], "route_date": problem.date, "scenario": scenario,
       "parameters": params, "orders_planned": t["stops"], "orders_dropped": t["dropped_orders"],
-      "routes_used": t["routes"], "total_miles": t["miles"], "total_cost_usd": t["cost_usd"],
-      "baseline_miles": (baseline or {}).get("miles"), "baseline_cost_usd": (baseline or {}).get("cost_usd"),
+      "routes_used": t["routes"], "total_miles": t["miles"], "pcmiler_miles": t["pcmiler_miles"],
+      "total_cost_usd": t["cost_usd"], "baseline_miles": (baseline or {}).get("miles"),
+      "baseline_pcmiler_miles": (baseline or {}).get("pcmiler_miles"), "baseline_cost_usd": (baseline or {}).get("cost_usd"),
       "late_stops": t["late_stops"], "co2_kg": t["co2_kg"], "created_at": now_ts(),
   }])
   return [r["route_id"] for r in route_rows]
@@ -134,7 +143,15 @@ def _run(
   if result.status != "OK":
     raise ToolError(f"Solver returned {result.status}. Try allow_late=True, more trucks or wider windows.")
   baseline = evaluate_static_plan(problem)
+  # PC*MILER is the mileage of record in TMW: stamp both plans the same way.
+  pcmiler.stamp_routes(result.routes, problem.depot)
+  if baseline:
+    pcmiler.stamp_routes(baseline.routes, problem.depot)
   base_totals = baseline.totals if baseline else None
+  policies = load_otd_policies()
+  otd = {"optimized": _otd_brief(plan_otd(result.routes, problem.customers, policies))}
+  if baseline:
+    otd["tmw_static"] = _otd_brief(plan_otd(baseline.routes, problem.customers, policies))
   plan_id = new_id(f"PLN-{problem.dc['dc_id'].split('-')[1][:3]}")
   params = {
       "scenario": scenario, "max_trucks": max_trucks, "window_extension_min": window_extension_min,
@@ -157,6 +174,10 @@ def _run(
       "totals": result.totals,
       "tmw_static_baseline": base_totals,
       "vs_baseline": _savings(base_totals, result.totals) if base_totals else None,
+      "mileage": {"source": result.routes[0].mileage_source if result.routes else None,
+                  "routing_type": pcmiler.routing_type(),
+                  "note": "pcmiler_miles is the TMW mileage of record; miles is the routing-matrix estimate."},
+      "planned_otd": otd,
       "disruptions_applied": [
           {"event_id": d.event_id, "multiplier": d.factor, "description": d.description} for d in problem.disruptions
       ],
@@ -199,9 +220,10 @@ def optimize_routes(
     time_limit_s: Solver time budget in seconds. 0 uses the configured default.
 
   Returns:
-    plan_id, totals (routes, miles, cost, CO2, late stops), the same metrics
-    for the TMW static plan with deltas, dropped orders with reasons, and one
-    summary per route.
+    plan_id, totals (routes, matrix miles and PC*MILER miles, cost, CO2,
+    late stops), the same metrics for the TMW static plan with deltas,
+    planned Retail and Restaurant OTD for both plans, dropped orders with
+    reasons, and one summary per route.
   """
   out = _run(dc_id, delivery_date, "BASE", max_trucks, window_extension_min, allow_late,
              use_learned_service_times, include_disruptions, time_limit_s)
@@ -242,7 +264,8 @@ def run_what_if_scenarios(dc_id: str, delivery_date: str, tool_context: ToolCont
   for name, r in scenarios.items():
     tt = r["totals"]
     table.append({
-        "scenario": name, "trucks": tt["routes"], "miles": tt["miles"], "cost_usd": tt["cost_usd"],
+        "scenario": name, "trucks": tt["routes"], "miles": tt["miles"], "pcmiler_miles": tt["pcmiler_miles"],
+        "cost_usd": tt["cost_usd"],
         "late_stops": tt["late_stops"], "dropped_orders": tt["dropped_orders"],
         "avg_utilization_pct": tt["avg_utilization_pct"],
     })
@@ -282,7 +305,7 @@ def get_route_plan(plan_id: str, route_id: str = "") -> dict:
         "plan": runs[0],
         "routes": [
             {k: r[k] for k in ("route_id", "tractor_id", "trailer_id", "driver_id", "stop_count",
-                               "total_miles", "total_cases", "late_stops", "est_cost_usd", "status")}
+                               "total_miles", "pcmiler_miles", "total_cases", "late_stops", "est_cost_usd", "status")}
             | {"depart": fmt_time(r["depart_min"]), "return": fmt_time(r["return_min"])}
             for r in routes
         ],
@@ -304,6 +327,7 @@ def get_route_plan(plan_id: str, route_id: str = "") -> dict:
               "window": f"{fmt_time(s['window_start_min'])}-{fmt_time(s['window_end_min'])}",
               "on_time": str(s["window_ok"]).lower() in {"1", "true", "t"},
               "miles_from_prev": s["miles_from_prev"],
+              "pcmiler_leg_miles": s.get("pcmiler_leg_miles"),
           }
           for s in stops
       ],

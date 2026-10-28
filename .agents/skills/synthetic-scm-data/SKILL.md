@@ -1,6 +1,6 @@
 ---
 name: synthetic-scm-data
-description: Use when generating, extending or reloading the synthetic McLane logistics dataset (DCs, customers, fleet, drivers, orders, history, traffic/weather, route events) or adding a table or column.
+description: Use when generating, extending or reloading the synthetic McLane logistics dataset (DCs, customers, geofences, fleet, drivers, orders, geofence history, GPS pings, traffic/weather, route events, OTD policies) or adding a table or column.
 ---
 
 # Synthetic SCM data
@@ -13,19 +13,24 @@ loadable into SQLite, BigQuery and AlloyDB from the same definition.
 1. The schema lives only in `route_optimizer/db/schema.py`. Add columns there with a clear
    description, because BigQuery column descriptions feed Gemini NL2SQL.
 2. Generate data in `data/generate_synthetic_data.py`. Keep it deterministic (`random.Random(seed)`)
-   and fictional (no real customer names).
-3. Regenerate: `python data/generate_synthetic_data.py`. This writes `data/synthetic/*.csv`,
+   and fictional (no real customer names). Location features (geocodes, dwell shifts, GPS pings) draw
+   from a second generator `xr`, so adding them does not reshuffle the base data.
+3. Planted patterns the agent must find are written to `data/synthetic/_planted_patterns.json`
+   (never loaded into a database): customers with a bad TMW geocode, and customers whose dwell
+   changed in the last 14 days. A planted `DWELL_OVERRUN` (EVT-PHO-02) matches the Phoenix GPS pings.
+4. Regenerate: `uv run python data/generate_synthetic_data.py`. This writes `data/synthetic/*.csv`,
    `data/mclane_routing.db` and `data/schema/{sqlite,alloydb,bigquery}.sql` plus
    `data/schema/bigquery_json/*.json`.
-4. Validate: `python .agents/skills/schema-validator/scripts/validate_schema.py`.
-5. Reload cloud copies: `python data/load_bigquery.py --project <p> --replace` and/or
-   `python data/load_alloydb.py --replace`.
-6. Run `python -m pytest -q`.
+5. Validate: `uv run python .agents/skills/schema-validator/scripts/validate_schema.py`.
+6. Reload cloud copies: `uv run python data/load_bigquery.py --project <p> --replace` and/or
+   `uv run python data/load_alloydb.py --replace`.
+7. Run `uv run pytest -q`.
 
 ## Examples
-- Add a `telematics_pings` table (tractor, minute, lat, lon, speed, reefer temp): define it in
-  `schema.py`, generate pings along TMW static routes in the generator, and teach `_live()` in
-  `tools/event_tools.py` to read the latest ping for truck position.
+- Add reefer temperatures to `gps_pings`: add `reefer_temp_f` in `schema.py`, generate it in
+  `gen_gps_pings` (drift up after the Dallas reefer event time), and let `detect_geofence_events`
+  or a new tool raise `REEFER_TEMP_ALERT` events from it.
+- GPS for more days: call `gen_gps_pings` for each `executed` day of `build_static_routes`.
 - Scale up: raise `customers` per DC in `DCS`. The fleet is sized automatically from peak daily cases.
 
 ## Constraints

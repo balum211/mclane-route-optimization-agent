@@ -54,6 +54,12 @@
     "description": "Miles"
   },
   {
+    "name": "pcmiler_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "PC*MILER miles of the plan"
+  },
+  {
     "name": "total_cost_usd",
     "type": "FLOAT",
     "mode": "NULLABLE",
@@ -64,6 +70,12 @@
     "type": "FLOAT",
     "mode": "NULLABLE",
     "description": "TMW static plan miles"
+  },
+  {
+    "name": "baseline_pcmiler_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "TMW static plan PC*MILER miles"
   },
   {
     "name": "baseline_cost_usd",

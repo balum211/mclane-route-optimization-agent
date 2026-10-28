@@ -1,0 +1,56 @@
+[
+  {
+    "name": "geofence_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Geofence id"
+  },
+  {
+    "name": "entity_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "CUSTOMER or DC"
+  },
+  {
+    "name": "entity_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "customer_id or dc_id"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "center_lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Centre latitude"
+  },
+  {
+    "name": "center_lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Centre longitude"
+  },
+  {
+    "name": "radius_m",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Radius in meters"
+  },
+  {
+    "name": "source",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "MASTER_DATA (centred on TMW lat/lon) or GPS_LEARNED"
+  },
+  {
+    "name": "active",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE",
+    "description": "Used by the geofence engine"
+  }
+]

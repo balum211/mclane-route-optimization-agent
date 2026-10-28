@@ -1,0 +1,56 @@
+[
+  {
+    "name": "ping_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Ping id"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "ping_date",
+    "type": "DATE",
+    "mode": "REQUIRED",
+    "description": "Operating date"
+  },
+  {
+    "name": "ping_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Report time, minutes after midnight"
+  },
+  {
+    "name": "tractor_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Tractor reporting"
+  },
+  {
+    "name": "route_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Route the truck is running (as dispatched in TMW)"
+  },
+  {
+    "name": "lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Latitude"
+  },
+  {
+    "name": "lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Longitude"
+  },
+  {
+    "name": "speed_mph",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Speed in mph"
+  }
+]

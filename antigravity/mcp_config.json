@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "adk-docs-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "mcpdoc",
+        "mcpdoc",
+        "--urls",
+        "AgentDevelopmentKit:https://adk.dev/llms.txt",
+        "--transport",
+        "stdio"
+      ]
+    },
+    "mclane-toolbox": {
+      "command": "toolbox",
+      "args": ["--tools-file", "tools.yaml", "--stdio"],
+      "env": {
+        "GOOGLE_CLOUD_PROJECT": "your-project-id",
+        "REGION": "us-central1",
+        "PG_USER": "postgres",
+        "PG_PASSWORD": "change-me"
+      }
+    }
+  }
+}

@@ -14,6 +14,12 @@ receiving windows are soft with a lateness penalty.
 A change is escalated to a human dispatcher when an SLA breach cannot be
 avoided, when it costs more than ESCALATION_COST_USD, or always for food
 safety (reefer) events.
+
+DWELL_OVERRUN comes from the geofence engine (a truck still inside a
+customer geofence well past its planned unload time) and is re-planned like
+a delay from the customer's location. Every re-plan also reports its Retail
+and Restaurant OTD impact: restaurants are judged against the ETA they were
+already given, retail against the receiving window.
 """
 
 from __future__ import annotations
@@ -24,13 +30,16 @@ from typing import Optional
 
 from google.adk.tools import FunctionTool, ToolContext
 
+from .. import pcmiler
 from ..config import get_settings
 from ..db.repository import get_repository
 from ..geo import Disruption, Point, build_matrix, fmt_time, haversine_miles, parse_time
 from ..optimizer import PlanResult, SolverOptions, Stop, Vehicle, simulate_route, solve
-from ._common import Problem, ToolError, as_date, load_problem, new_id, now_ts, q
+from ..otd import is_on_time, segment_group
+from ._common import Problem, ToolError, as_date, load_otd_policies, load_problem, new_id, now_ts, q
 
-EVENT_TYPES = ("DELAY", "BREAKDOWN", "ORDER_ADDED", "ORDER_CANCELLED", "ROAD_CLOSURE", "NO_SHOW", "REEFER_TEMP_ALERT")
+EVENT_TYPES = ("DELAY", "BREAKDOWN", "ORDER_ADDED", "ORDER_CANCELLED", "ROAD_CLOSURE", "NO_SHOW", "REEFER_TEMP_ALERT",
+               "DWELL_OVERRUN")
 HOOKUP_MIN = 30        # rescue tractor hook-up at a breakdown
 REPICK_MIN = 60        # pick, load and dispatch a spare unit from the DC
 FAILED = "FAILED"
@@ -145,14 +154,19 @@ def _handle(event: dict, plan_id: str = "") -> dict:
   etype = event["event_type"]
   now = int(event["event_min"])
   problem = load_problem(event["dc_id"], event["event_date"], include_disruptions=True)
-  plan_id = plan_id or _latest_plan(problem.dc["dc_id"], problem.date) or ""
-  routes, rstops = _plan_routes(plan_id or None, problem.dc["dc_id"], problem.date)
-  if not routes:
-    raise ToolError("No plan or TMW static routes exist for this DC and date.")
   payload = event.get("payload") or {}
   if isinstance(payload, str):
     import json
     payload = json.loads(payload or "{}")
+  # Telematics and geofence events know the route the truck is actually running.
+  running = q("SELECT plan_id, source FROM routes WHERE route_id = :r", r=payload["route_id"]) if payload.get("route_id") else []
+  if running:
+    plan_id = running[0]["plan_id"] or ""
+  else:
+    plan_id = plan_id or _latest_plan(problem.dc["dc_id"], problem.date) or ""
+  routes, rstops = _plan_routes(plan_id or None, problem.dc["dc_id"], problem.date)
+  if not routes:
+    raise ToolError("No plan or TMW static routes exist for this DC and date.")
 
   disruptions = list(problem.disruptions)
   lives: dict[str, Live] = {}
@@ -168,14 +182,22 @@ def _handle(event: dict, plan_id: str = "") -> dict:
     lives[r["route_id"]] = _live(r, rstops[r["route_id"]], problem, now, **kw)
     return lives[r["route_id"]]
 
-  if etype == "DELAY":
+  if etype in ("DELAY", "DWELL_OVERRUN"):
     r = _route_of(routes, rstops, tractor_id=event.get("tractor_id"))
     delay = int(event.get("delay_min") or 0)
     if delay < s.delay_trigger_min:
       return _no_action(event, plan_id, f"Delay of {delay} min is under the {s.delay_trigger_min} min re-plan trigger; ETAs updated only.", t0)
-    live(r, extra_delay=delay)
+    pos = None
+    cust = problem.customers.get(event.get("customer_id") or "")
+    if etype == "DWELL_OVERRUN" and cust:
+      pos = Point("DOCK", float(cust["lat"]), float(cust["lon"]))
+    live(r, extra_delay=delay, position=pos)
     extra_cost += delay / 60 * cm.driver_cost_per_hour_usd
-    notes.append(f"Route {r['route_id']} is running {delay} min behind.")
+    if etype == "DWELL_OVERRUN":
+      notes.append(f"Geofence shows the truck on route {r['route_id']} still unloading at "
+                   f"{cust['name'] if cust else event.get('customer_id')}, about {delay} min over plan.")
+    else:
+      notes.append(f"Route {r['route_id']} is running {delay} min behind.")
 
   elif etype == "BREAKDOWN":
     r = _route_of(routes, rstops, tractor_id=event.get("tractor_id"))
@@ -337,6 +359,11 @@ def _handle(event: dict, plan_id: str = "") -> dict:
   late_after = sum(r.late_stops for r in result.routes) + len(result.dropped)
   cost_impact = round(after_cost - planned, 2)
 
+  otd = _otd_impact(problem, lives, rstops, keep, result, new_stops)
+  if otd["restaurant_eta_moves_over_tolerance"]:
+    notes.append(f"{len(otd['restaurant_eta_moves_over_tolerance'])} restaurant stop(s) move more than "
+                 f"{otd['restaurant_tolerance_min']} min from the ETA they were given; send them an ETA update.")
+
   # ---- explain ---------------------------------------------------------
   changes = []
   by_vehicle = {r.vehicle.vehicle_id: r for r in result.routes}
@@ -399,10 +426,44 @@ def _handle(event: dict, plan_id: str = "") -> dict:
           "replanned_cost_usd": round(after_cost, 2),
           "cost_impact_usd": cost_impact,
       },
+      "otd_impact": otd,
       "what_changed": notes + changes,
       "replan_latency_s": latency,
       "latency_target_met": latency < 30,
   }
+
+
+def _otd_impact(problem: Problem, lives: dict, rstops: dict, keep: dict, result: PlanResult, new_stops: list) -> dict:
+  """Retail and Restaurant OTD of the affected stops, if nothing changes versus after the re-plan."""
+  policies = load_otd_policies()
+  promised = {s["order_id"]: int(s["eta_min"]) for rid in lives for s in rstops[rid] if s["eta_min"] is not None}
+  def tally(routes):
+    out = {}
+    for r in routes:
+      for p in r.stops:
+        oid = p.order_id.removesuffix("-COLD")
+        c = problem.customers.get(p.customer_id, {})
+        g = segment_group(c.get("segment"))
+        ok = is_on_time(policies[g], p.arrival_min, p.window_start, p.window_end, promised.get(oid, p.arrival_min))
+        out[p.order_id] = (g, ok, p.arrival_min)
+    return out
+  before, after = tally(keep.values()), tally(result.routes)
+  for st in new_stops:
+    before.setdefault(st.order_id, (segment_group(problem.customers.get(st.customer_id, {}).get("segment")), False, None))
+  res = {}
+  for g in ("RETAIL", "RESTAURANT"):
+    b = [v[1] for v in before.values() if v[0] == g]
+    a = [v[1] for v in after.values() if v[0] == g]
+    if b or a:
+      res[g] = {"stops": max(len(b), len(a)), "on_time_if_no_change": sum(b), "on_time_after_replan": sum(a)}
+  tol = policies["RESTAURANT"].late_tolerance_min
+  moves = []
+  for oid, (g, _, arr) in after.items():
+    base = promised.get(oid.removesuffix("-COLD"))
+    if g == "RESTAURANT" and base is not None and abs(arr - base) > tol:
+      cust = next((p.customer_id for r in result.routes for p in r.stops if p.order_id == oid), None)
+      moves.append({"customer_id": cust, "promised_eta": fmt_time(base), "new_eta": fmt_time(arr)})
+  return {"by_group": res, "restaurant_tolerance_min": tol, "restaurant_eta_moves_over_tolerance": moves}
 
 
 def _no_action(event: dict, plan_id: str, why: str, t0: float) -> dict:
@@ -419,6 +480,7 @@ def _no_action(event: dict, plan_id: str, why: str, t0: float) -> dict:
 def _persist(event, plan_id, new_plan, problem, result, by_id, lives, cost_impact, late_before, late_after,
              escalations, status, explanation, latency, untouched):
   repo = get_repository()
+  pcmiler.stamp_routes(result.routes, problem.depot)
   route_rows, stop_rows = [], []
   for r in result.routes:
     vid = r.vehicle.vehicle_id
@@ -430,6 +492,7 @@ def _persist(event, plan_id, new_plan, problem, result, by_id, lives, cost_impac
         "route_date": problem.date, "tractor_id": r.vehicle.tractor_id, "trailer_id": r.vehicle.trailer_id,
         "driver_id": r.vehicle.driver_id, "depart_min": depart, "return_min": r.return_min,
         "stop_count": len(r.stops) + (len(lv.done) if lv else 0), "total_miles": round(r.total_miles, 1),
+        "pcmiler_miles": r.pcmiler_miles, "mileage_source": r.mileage_source,
         "total_duration_min": r.return_min - depart, "total_cases": r.cases, "est_cost_usd": round(r.cost_usd, 2),
         "late_stops": r.late_stops, "status": "IN_PROGRESS" if lv else "PLANNED",
     })
@@ -442,7 +505,8 @@ def _persist(event, plan_id, new_plan, problem, result, by_id, lives, cost_impac
       seq += 1
       stop_rows.append({"route_id": rid, "stop_seq": seq, "order_id": p.order_id.removesuffix("-COLD"),
                         "customer_id": p.customer_id, "eta_min": p.arrival_min, "etd_min": p.departure_min,
-                        "miles_from_prev": round(p.miles_from_prev, 1), "window_ok": p.late_min == 0})
+                        "miles_from_prev": round(p.miles_from_prev, 1), "pcmiler_leg_miles": p.pcmiler_leg_miles,
+                        "window_ok": p.late_min == 0})
   repo.insert("routes", route_rows)
   repo.insert("route_stops", stop_rows)
   t = result.totals
@@ -450,7 +514,8 @@ def _persist(event, plan_id, new_plan, problem, result, by_id, lives, cost_impac
       "plan_id": new_plan, "dc_id": problem.dc["dc_id"], "route_date": problem.date, "scenario": "REOPTIMIZE",
       "parameters": {"event_id": event["event_id"], "source_plan_id": plan_id or "TMW_STATIC"},
       "orders_planned": t["stops"], "orders_dropped": t["dropped_orders"], "routes_used": t["routes"],
-      "total_miles": t["miles"], "total_cost_usd": t["cost_usd"], "baseline_miles": None,
+      "total_miles": t["miles"], "pcmiler_miles": t["pcmiler_miles"], "total_cost_usd": t["cost_usd"],
+      "baseline_miles": None, "baseline_pcmiler_miles": None,
       "baseline_cost_usd": round(t["cost_usd"] - cost_impact, 2), "late_stops": t["late_stops"],
       "co2_kg": t["co2_kg"], "created_at": now_ts(),
   }])
@@ -505,17 +570,24 @@ def handle_route_event(event_id: str, tool_context: ToolContext, plan_id: str = 
       DC and date, or the TMW static routes.
 
   Returns:
-    Affected and untouched routes, before/after late stops, cost impact,
-    plain-language list of what changed, whether a human must approve (and
-    why), the new plan id and the re-plan latency in seconds.
+    Affected and untouched routes, before/after late stops, Retail and
+    Restaurant OTD impact (restaurants whose ETA moves more than the
+    tolerance), cost impact, plain-language list of what changed, whether a
+    human must approve (and why), the new plan id and the re-plan latency.
   """
   rows = q("SELECT * FROM route_events WHERE event_id = :e", e=event_id)
   if not rows:
     raise ToolError(f"Unknown event {event_id!r}")
-  plan_id = plan_id or tool_context.state.get("last_plan_id", "")
+  ev = rows[0]
+  if not plan_id:
+    # The session's last plan only applies when it is for the event's DC and date.
+    last = tool_context.state.get("last_plan_id", "")
+    run = q("SELECT dc_id, route_date FROM optimization_runs WHERE plan_id = :p", p=last) if last else []
+    if run and run[0]["dc_id"] == ev["dc_id"] and str(run[0]["route_date"])[:10] == str(ev["event_date"])[:10]:
+      plan_id = last
   if plan_id.startswith(("EVP-", "RPL-")):
     plan_id = ""  # events apply to the base plan, not to a previous patch
-  out = _handle(rows[0], plan_id)
+  out = _handle(ev, plan_id)
   if out.get("new_plan_id"):
     tool_context.state["last_event_plan_id"] = out["new_plan_id"]
   return out

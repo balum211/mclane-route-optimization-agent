@@ -27,8 +27,10 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.customers` (
   address STRING OPTIONS(description="Street address (synthetic)"),
   city STRING OPTIONS(description="City"),
   state STRING OPTIONS(description="State"),
-  lat FLOAT64 OPTIONS(description="Latitude"),
-  lon FLOAT64 OPTIONS(description="Longitude"),
+  lat FLOAT64 OPTIONS(description="Latitude of the delivery point (TMW company master data)"),
+  lon FLOAT64 OPTIONS(description="Longitude of the delivery point (TMW company master data)"),
+  geocode_source STRING OPTIONS(description="Where lat/lon came from: ADDRESS_ROOFTOP, ZIP_CENTROID, GPS_LEARNED"),
+  geocode_confidence STRING OPTIONS(description="HIGH, MEDIUM, LOW"),
   window_start_min INT64 OPTIONS(description="Receiving window open, minutes after midnight"),
   window_end_min INT64 OPTIONS(description="Receiving window close, minutes after midnight"),
   std_service_min INT64 OPTIONS(description="Standard unload time in minutes (TMS master data)"),
@@ -41,6 +43,33 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.customers` (
   PRIMARY KEY (customer_id) NOT ENFORCED
 )
 OPTIONS(description="Retail stores and restaurants served by a DC (TMW company profile).");
+
+CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.geofences` (
+  geofence_id STRING NOT NULL OPTIONS(description="Geofence id"),
+  entity_type STRING OPTIONS(description="CUSTOMER or DC"),
+  entity_id STRING NOT NULL OPTIONS(description="customer_id or dc_id"),
+  dc_id STRING OPTIONS(description="Distribution center id"),
+  center_lat FLOAT64 OPTIONS(description="Centre latitude"),
+  center_lon FLOAT64 OPTIONS(description="Centre longitude"),
+  radius_m INT64 OPTIONS(description="Radius in meters"),
+  source STRING OPTIONS(description="MASTER_DATA (centred on TMW lat/lon) or GPS_LEARNED"),
+  active BOOL OPTIONS(description="Used by the geofence engine"),
+  PRIMARY KEY (geofence_id) NOT ENFORCED
+)
+OPTIONS(description="Circular geofences around each customer delivery point and each DC yard, used to detect arrivals and departures from GPS.");
+
+CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.otd_policies` (
+  segment_group STRING NOT NULL OPTIONS(description="RETAIL (c-store, grocery, mass merchant) or RESTAURANT (QSR, casual dining)"),
+  segments STRING OPTIONS(description="Customer segments in the group, comma separated"),
+  measure_against STRING OPTIONS(description="RECEIVING_WINDOW or SCHEDULED_TIME"),
+  early_tolerance_min INT64 OPTIONS(description="Minutes before the window or scheduled time still counted on time (NULL = early is fine)"),
+  late_tolerance_min INT64 OPTIONS(description="Minutes after the window close or scheduled time still counted on time"),
+  target_pct FLOAT64 OPTIONS(description="OTD target in percent"),
+  arrival_event STRING OPTIONS(description="What timestamps the arrival: GEOFENCE_ENTRY, falling back to DRIVER_APP"),
+  description STRING OPTIONS(description="Plain-language definition"),
+  PRIMARY KEY (segment_group) NOT ENFORCED
+)
+OPTIONS(description="On-time delivery (OTD) definitions for Retail and Restaurant customers.");
 
 CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.tractors` (
   tractor_id STRING NOT NULL OPTIONS(description="Tractor id"),
@@ -109,7 +138,9 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.routes` (
   depart_min INT64 OPTIONS(description="Planned DC departure"),
   return_min INT64 OPTIONS(description="Planned DC return"),
   stop_count INT64 OPTIONS(description="Number of stops"),
-  total_miles FLOAT64 OPTIONS(description="Planned road miles"),
+  total_miles FLOAT64 OPTIONS(description="Planned road miles from the routing matrix"),
+  pcmiler_miles FLOAT64 OPTIONS(description="Trimble PC*MILER miles for the stop sequence (mileage of record in TMW)"),
+  mileage_source STRING OPTIONS(description="PCMILER (live API) or PCMILER_EMULATED (offline estimate)"),
   total_duration_min INT64 OPTIONS(description="Planned duration"),
   total_cases INT64 OPTIONS(description="Cases on board"),
   est_cost_usd FLOAT64 OPTIONS(description="Estimated cost"),
@@ -127,6 +158,7 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.route_stops` (
   eta_min INT64 OPTIONS(description="Planned arrival, minutes after midnight"),
   etd_min INT64 OPTIONS(description="Planned departure"),
   miles_from_prev FLOAT64 OPTIONS(description="Leg miles"),
+  pcmiler_leg_miles FLOAT64 OPTIONS(description="PC*MILER leg miles from the previous stop"),
   window_ok BOOL OPTIONS(description="Arrival inside the receiving window"),
   PRIMARY KEY (route_id, stop_seq) NOT ENFORCED
 )
@@ -137,15 +169,20 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.delivery_history` (
   customer_id STRING NOT NULL OPTIONS(description="Customer"),
   dc_id STRING OPTIONS(description="Distribution center id"),
   delivery_date DATE OPTIONS(description="Date"),
-  planned_arrival_min INT64 OPTIONS(description="Planned arrival"),
-  actual_arrival_min INT64 OPTIONS(description="Actual arrival"),
-  dwell_min INT64 OPTIONS(description="Actual time on site"),
+  tractor_id STRING OPTIONS(description="Truck that delivered"),
+  planned_arrival_min INT64 OPTIONS(description="Scheduled arrival in the dispatched plan"),
+  actual_arrival_min INT64 OPTIONS(description="Actual arrival (geofence entry, or driver app when the geofence missed)"),
+  actual_departure_min INT64 OPTIONS(description="Actual departure (geofence exit, or driver app)"),
+  arrival_source STRING OPTIONS(description="GEOFENCE or DRIVER_APP"),
+  dwell_min INT64 OPTIONS(description="Time on site: departure minus arrival"),
+  gps_stop_lat FLOAT64 OPTIONS(description="Latitude where the truck actually parked (telematics stop detection)"),
+  gps_stop_lon FLOAT64 OPTIONS(description="Longitude where the truck actually parked"),
   cases INT64 OPTIONS(description="Cases delivered"),
-  on_time BOOL OPTIONS(description="Arrived inside window"),
+  on_time BOOL OPTIONS(description="On time under the Retail or Restaurant OTD policy of the customer"),
   exception_code STRING OPTIONS(description="NONE, TRAFFIC, WEATHER, DOCK_BUSY, LATE_DISPATCH, REFUSED"),
   PRIMARY KEY (delivery_id) NOT ENFORCED
 )
-OPTIONS(description="Last 60 days of completed deliveries, used to learn dwell time and lateness.");
+OPTIONS(description="Last 60 days of completed deliveries with geofence arrival/departure, used to learn dwell time and measure OTD.");
 
 CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.traffic_events` (
   event_id STRING NOT NULL OPTIONS(description="Event id"),
@@ -184,8 +221,8 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.route_events` (
   dc_id STRING NOT NULL OPTIONS(description="Distribution center id"),
   event_date DATE NOT NULL OPTIONS(description="Operating date"),
   event_min INT64 OPTIONS(description="Time the event happened, minutes after midnight"),
-  event_type STRING OPTIONS(description="DELAY, BREAKDOWN, ORDER_ADDED, ORDER_CANCELLED, ROAD_CLOSURE, NO_SHOW, REEFER_TEMP_ALERT"),
-  source STRING OPTIONS(description="TELEMATICS, DRIVER_APP, TMS, TRAFFIC_FEED, CUSTOMER"),
+  event_type STRING OPTIONS(description="DELAY, BREAKDOWN, ORDER_ADDED, ORDER_CANCELLED, ROAD_CLOSURE, NO_SHOW, REEFER_TEMP_ALERT, DWELL_OVERRUN"),
+  source STRING OPTIONS(description="TELEMATICS, GEOFENCE, DRIVER_APP, TMS, TRAFFIC_FEED, CUSTOMER"),
   tractor_id STRING OPTIONS(description="Truck involved (resolves to its route in any plan)"),
   customer_id STRING OPTIONS(description="Customer involved"),
   order_id STRING OPTIONS(description="Order involved"),
@@ -254,8 +291,10 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.optimization_runs` (
   orders_dropped INT64 OPTIONS(description="Orders the solver could not fit"),
   routes_used INT64 OPTIONS(description="Trucks used"),
   total_miles FLOAT64 OPTIONS(description="Miles"),
+  pcmiler_miles FLOAT64 OPTIONS(description="PC*MILER miles of the plan"),
   total_cost_usd FLOAT64 OPTIONS(description="Cost"),
   baseline_miles FLOAT64 OPTIONS(description="TMW static plan miles"),
+  baseline_pcmiler_miles FLOAT64 OPTIONS(description="TMW static plan PC*MILER miles"),
   baseline_cost_usd FLOAT64 OPTIONS(description="TMW static plan cost"),
   late_stops INT64 OPTIONS(description="Late stops"),
   co2_kg FLOAT64 OPTIONS(description="Estimated CO2"),
@@ -268,7 +307,7 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.tmw_dispatch_queue` (
   message_id STRING NOT NULL OPTIONS(description="Message id"),
   plan_id STRING OPTIONS(description="Plan id"),
   route_id STRING OPTIONS(description="Route id"),
-  message_type STRING OPTIONS(description="CREATE_MOVEMENT, UPDATE_STOPS, CANCEL"),
+  message_type STRING OPTIONS(description="CREATE_MOVEMENT, UPDATE_STOPS, CANCEL, COMPANY_UPDATE"),
   payload JSON OPTIONS(description="TMW-shaped payload"),
   status STRING OPTIONS(description="QUEUED, SENT, ACKED, FAILED"),
   created_at TIMESTAMP OPTIONS(description="Created"),
@@ -287,3 +326,50 @@ CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.customer_notifications` 
   PRIMARY KEY (notification_id) NOT ENFORCED
 )
 OPTIONS(description="ETA notifications sent to stores and restaurants.");
+
+CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.gps_pings` (
+  ping_id STRING NOT NULL OPTIONS(description="Ping id"),
+  dc_id STRING NOT NULL OPTIONS(description="Distribution center id"),
+  ping_date DATE NOT NULL OPTIONS(description="Operating date"),
+  ping_min INT64 OPTIONS(description="Report time, minutes after midnight"),
+  tractor_id STRING NOT NULL OPTIONS(description="Tractor reporting"),
+  route_id STRING OPTIONS(description="Route the truck is running (as dispatched in TMW)"),
+  lat FLOAT64 OPTIONS(description="Latitude"),
+  lon FLOAT64 OPTIONS(description="Longitude"),
+  speed_mph FLOAT64 OPTIONS(description="Speed in mph"),
+  PRIMARY KEY (ping_id) NOT ENFORCED
+)
+OPTIONS(description="Truck telematics breadcrumbs (ELD / GPS), one row per position report.");
+
+CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.geofence_events` (
+  geofence_event_id STRING NOT NULL OPTIONS(description="Visit id (one row per geofence visit)"),
+  dc_id STRING OPTIONS(description="Distribution center id"),
+  event_date DATE OPTIONS(description="Operating date"),
+  tractor_id STRING OPTIONS(description="Tractor"),
+  route_id STRING OPTIONS(description="Route"),
+  geofence_id STRING OPTIONS(description="Geofence entered"),
+  entity_type STRING OPTIONS(description="CUSTOMER or DC"),
+  entity_id STRING OPTIONS(description="customer_id or dc_id"),
+  arrive_min INT64 OPTIONS(description="Geofence entry, minutes after midnight"),
+  depart_min INT64 OPTIONS(description="Geofence exit (NULL while the truck is still inside)"),
+  dwell_min INT64 OPTIONS(description="Minutes inside the geofence so far"),
+  planned_service_min INT64 OPTIONS(description="Unload time the plan allowed"),
+  created_at TIMESTAMP OPTIONS(description="Detected"),
+  PRIMARY KEY (geofence_event_id) NOT ENFORCED
+)
+OPTIONS(description="Arrivals and departures detected by the geofence engine from GPS pings.");
+
+CREATE TABLE IF NOT EXISTS `YOUR_PROJECT.mclane_routing.master_data_updates` (
+  update_id STRING NOT NULL OPTIONS(description="Update id"),
+  dc_id STRING OPTIONS(description="Distribution center id"),
+  customer_id STRING NOT NULL OPTIONS(description="Customer"),
+  field STRING OPTIONS(description="std_service_min, lat_lon"),
+  old_value STRING OPTIONS(description="Value before"),
+  new_value STRING OPTIONS(description="Value after"),
+  reason STRING OPTIONS(description="Why the change is proposed"),
+  evidence JSON OPTIONS(description="Numbers behind the change"),
+  status STRING OPTIONS(description="APPLIED (used in planning, queued for TMW) or REJECTED"),
+  created_at TIMESTAMP OPTIONS(description="Created"),
+  PRIMARY KEY (update_id) NOT ENFORCED
+)
+OPTIONS(description="Customer master-data corrections proposed by the agent (dwell standard, geocode) and sent to TMW.");

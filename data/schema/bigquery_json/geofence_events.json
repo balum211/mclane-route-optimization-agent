@@ -1,0 +1,80 @@
+[
+  {
+    "name": "geofence_event_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Visit id (one row per geofence visit)"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "event_date",
+    "type": "DATE",
+    "mode": "NULLABLE",
+    "description": "Operating date"
+  },
+  {
+    "name": "tractor_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Tractor"
+  },
+  {
+    "name": "route_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Route"
+  },
+  {
+    "name": "geofence_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Geofence entered"
+  },
+  {
+    "name": "entity_type",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "CUSTOMER or DC"
+  },
+  {
+    "name": "entity_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "customer_id or dc_id"
+  },
+  {
+    "name": "arrive_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Geofence entry, minutes after midnight"
+  },
+  {
+    "name": "depart_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Geofence exit (NULL while the truck is still inside)"
+  },
+  {
+    "name": "dwell_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Minutes inside the geofence so far"
+  },
+  {
+    "name": "planned_service_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Unload time the plan allowed"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Detected"
+  }
+]

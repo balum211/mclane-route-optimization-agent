@@ -46,6 +46,7 @@ class Stop:
   requires_liftgate: bool = False
   max_vehicle_length_ft: int = 53
   hard_window: bool = False  # dock appointment: never arrive after close
+  segment: str = ""          # CONVENIENCE, GROCERY, MASS_MERCHANT, QSR, CASUAL_DINING
   # Product already loaded on a truck can only be delivered by that truck.
   pinned_vehicle_id: Optional[str] = None
 
@@ -114,6 +115,8 @@ class PlannedStop:
   wait_min: int
   cases: int
   traffic_events: list[str] = field(default_factory=list)
+  segment: str = ""
+  pcmiler_leg_miles: Optional[float] = None
 
   def as_dict(self) -> dict:
     return {
@@ -127,6 +130,8 @@ class PlannedStop:
         "late_min": self.late_min,
         "wait_min": self.wait_min,
         "miles_from_prev": round(self.miles_from_prev, 1),
+        "pcmiler_leg_miles": self.pcmiler_leg_miles,
+        "segment": self.segment,
         "cases": self.cases,
         "traffic_events": self.traffic_events,
     }
@@ -148,6 +153,8 @@ class RouteResult:
   co2_kg: float
   late_stops: int
   hos_violation: bool
+  pcmiler_miles: Optional[float] = None   # set by pcmiler.stamp_routes
+  mileage_source: str = ""
 
   def summary(self) -> dict:
     return {
@@ -159,6 +166,7 @@ class RouteResult:
         "return": fmt_time(self.return_min),
         "stops": len(self.stops),
         "miles": round(self.total_miles, 1),
+        "pcmiler_miles": self.pcmiler_miles,
         "duration_h": round(self.duration_min / 60, 2),
         "drive_h": round(self.drive_min / 60, 2),
         "cases": self.cases,
@@ -182,6 +190,10 @@ class PlanResult:
         "routes": len(self.routes),
         "stops": sum(len(r.stops) for r in self.routes),
         "miles": round(sum(r.total_miles for r in self.routes), 1),
+        "pcmiler_miles": (
+            round(sum(r.pcmiler_miles for r in self.routes), 1)
+            if self.routes and all(r.pcmiler_miles is not None for r in self.routes) else None
+        ),
         "drive_hours": round(sum(r.drive_min for r in self.routes) / 60, 1),
         "duty_hours": round(sum(r.duration_min for r in self.routes) / 60, 1),
         "cost_usd": round(sum(r.cost_usd for r in self.routes), 2),
@@ -246,6 +258,7 @@ def simulate_route(
             wait_min=start - arrival,
             cases=s.cases,
             traffic_events=matrix.impacted_legs.get((prev, s.order_id), []),
+            segment=s.segment,
         )
     )
     miles += leg_miles

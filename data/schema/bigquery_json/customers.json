@@ -57,13 +57,25 @@
     "name": "lat",
     "type": "FLOAT",
     "mode": "NULLABLE",
-    "description": "Latitude"
+    "description": "Latitude of the delivery point (TMW company master data)"
   },
   {
     "name": "lon",
     "type": "FLOAT",
     "mode": "NULLABLE",
-    "description": "Longitude"
+    "description": "Longitude of the delivery point (TMW company master data)"
+  },
+  {
+    "name": "geocode_source",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Where lat/lon came from: ADDRESS_ROOFTOP, ZIP_CENTROID, GPS_LEARNED"
+  },
+  {
+    "name": "geocode_confidence",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "HIGH, MEDIUM, LOW"
   },
   {
     "name": "window_start_min",

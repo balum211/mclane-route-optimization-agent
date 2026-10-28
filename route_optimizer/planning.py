@@ -26,23 +26,40 @@ def depot_point(dc: Mapping) -> Point:
   return Point(dc["dc_id"], float(dc["lat"]), float(dc["lon"]))
 
 
-def learned_service_minutes(history_rows: Iterable[Mapping]) -> dict[str, int]:
-  """75th percentile of observed dwell per customer.
+def learned_service_minutes(
+    history_rows: Iterable[Mapping], recent_days: int = 14, min_recent: int = 4
+) -> dict[str, int]:
+  """75th percentile of observed dwell per customer, recent data first.
 
   TMS master data usually carries one standard unload time per customer. The
-  history shows what really happens at the dock, and planning on the p75 is
-  what keeps a route on time when one store runs long.
+  geofence history shows what really happens at the dock, and planning on the
+  p75 is what keeps a route on time when one store runs long. When a
+  customer's dwell has changed lately (new receiving process, remodel,
+  staffing), the last ``recent_days`` win as soon as there are
+  ``min_recent`` visits in them.
   """
+  rows = [r for r in history_rows if r.get("dwell_min") is not None]
+  dates = [str(r["delivery_date"])[:10] for r in rows if r.get("delivery_date")]
+  cutoff = None
+  if dates:
+    import datetime as _dt
+
+    cutoff = (_dt.date.fromisoformat(max(dates)) - _dt.timedelta(days=recent_days - 1)).isoformat()
   by_cust: dict[str, list[int]] = defaultdict(list)
-  for r in history_rows:
-    if r.get("dwell_min") is not None:
-      by_cust[r["customer_id"]].append(int(r["dwell_min"]))
-  out = {}
-  for cid, vals in by_cust.items():
-    vals.sort()
-    k = max(0, math.ceil(0.75 * len(vals)) - 1)
-    out[cid] = vals[k]
-  return out
+  recent: dict[str, list[int]] = defaultdict(list)
+  for r in rows:
+    by_cust[r["customer_id"]].append(int(r["dwell_min"]))
+    if cutoff and r.get("delivery_date") and str(r["delivery_date"])[:10] >= cutoff:
+      recent[r["customer_id"]].append(int(r["dwell_min"]))
+  return {
+      cid: percentile(recent[cid] if len(recent[cid]) >= min_recent else vals, 0.75)
+      for cid, vals in by_cust.items()
+  }
+
+
+def percentile(values: Sequence[int], q: float) -> int:
+  vals = sorted(values)
+  return vals[max(0, math.ceil(q * len(vals)) - 1)]
 
 
 def stops_from_rows(
@@ -75,6 +92,7 @@ def stops_from_rows(
             requires_liftgate=_b(c.get("requires_liftgate")),
             max_vehicle_length_ft=int(c.get("max_vehicle_length_ft") or 53),
             hard_window=_b(c.get("hard_window")),
+            segment=c.get("segment") or "",
         )
     )
   return stops

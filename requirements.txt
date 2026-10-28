@@ -10,3 +10,6 @@ pg8000>=1.31
 google-cloud-alloydb-connector[pg8000]>=1.4
 # Event bus
 google-cloud-pubsub>=2.21
+uvicorn>=0.30
+# Optional: MCP Toolbox read-only SQL tools (tools.yaml)
+# toolbox-core>=1.0

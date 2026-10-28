@@ -4,7 +4,10 @@ The default provider estimates road miles from great-circle distance with a
 circuity factor and applies a speed profile. That keeps the demo fully offline
 and deterministic. Set ``TRAVEL_PROVIDER=google_routes`` (plus
 ``GOOGLE_MAPS_API_KEY``) to pull real road distances and durations from the
-Google Maps Routes API ``computeRouteMatrix`` endpoint instead.
+Google Maps Routes API ``computeRouteMatrix`` endpoint instead, or
+``TRAVEL_PROVIDER=pcmiler`` for Trimble PC*MILER truck miles (see pcmiler.py).
+Whatever the matrix provider, saved routes also carry PC*MILER miles, the
+mileage of record in TMW.
 """
 
 from __future__ import annotations
@@ -127,6 +130,10 @@ def build_matrix(
   provider = os.getenv("TRAVEL_PROVIDER", "haversine").lower()
   if provider == "google_routes":
     miles, minutes = _google_routes_matrix(points)
+  elif provider == "pcmiler":
+    from . import pcmiler
+
+    miles, minutes = pcmiler.matrix(points)
   else:
     n = len(points)
     miles = [[0.0] * n for _ in range(n)]

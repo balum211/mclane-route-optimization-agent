@@ -29,6 +29,11 @@ def plan():
 
 def test_optimized_plan_beats_tmw_static(plan):
   assert plan["totals"]["dropped_orders"] == 0
+  # PC*MILER miles on both plans (emulated offline) and planned Retail OTD for a grocery DC.
+  assert plan["totals"]["pcmiler_miles"] and plan["tmw_static_baseline"]["pcmiler_miles"]
+  assert plan["mileage"]["source"] == "PCMILER_EMULATED"
+  assert plan["vs_baseline"]["pcmiler_miles"]["optimized"] < plan["vs_baseline"]["pcmiler_miles"]["tmw_static"]
+  assert plan["planned_otd"]["optimized"]["RETAIL"]["stops"] == plan["totals"]["stops"]
   vs = plan["vs_baseline"]
   assert vs["cost_usd"]["optimized"] < vs["cost_usd"]["tmw_static"]
   assert vs["late_stops"]["optimized"] <= vs["late_stops"]["tmw_static"]
@@ -43,6 +48,9 @@ def test_route_detail_and_dispatch(plan, tool_context):
   assert preview["movements"] == plan["totals"]["routes"]
   stops = preview["sample_payload"]["stops"]
   assert stops[0]["stp_type"] == "PUP" and stops[1]["stp_type"] == "DRP"
+  leg = preview["sample_payload"]["legheader"]
+  assert leg["mileage_source"] == "PCMILER_EMULATED" and leg["mileage_type"] == "PC*MILER Practical"
+  assert abs(sum(s.get("stp_lgh_mileage") or 0 for s in stops) - leg["lgh_miles"]) < 1.0
   assert tms_tools.submit_plan_to_tmw_tool._require_confirmation is True
   sent = tms_tools.submit_plan_to_tmw(plan["plan_id"], tool_context)
   assert len(sent["messages"]) == plan["totals"]["routes"]
@@ -59,7 +67,8 @@ def test_disruption_assessment(plan, tool_context):
   assert out["events"]
 
 
-@pytest.mark.parametrize("event_id", ["EVT-TEM-01", "EVT-TEM-02", "EVT-TEM-03", "EVT-TEM-04", "EVT-DAL-01", "EVT-DAL-02", "EVT-PHO-01", "EVT-CON-01"])
+@pytest.mark.parametrize("event_id", ["EVT-TEM-01", "EVT-TEM-02", "EVT-TEM-03", "EVT-TEM-04", "EVT-DAL-01", "EVT-DAL-02",
+                                      "EVT-PHO-01", "EVT-PHO-02", "EVT-CON-01"])
 def test_seed_events_replan_under_30s(event_id, tool_context):
   out = event_tools.handle_route_event(event_id, tool_context)
   assert out["status"] in {"AUTO_APPLIED", "PENDING_APPROVAL", "NO_ACTION"}
@@ -67,6 +76,7 @@ def test_seed_events_replan_under_30s(event_id, tool_context):
   if out["status"] != "NO_ACTION":
     assert out["what_changed"]
     assert out["untouched_routes"] > 0
+    assert "by_group" in out["otd_impact"]
 
 
 def test_reefer_alert_always_escalates_and_moves_cold_product(tool_context):

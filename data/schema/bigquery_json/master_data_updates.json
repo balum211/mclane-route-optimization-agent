@@ -1,0 +1,62 @@
+[
+  {
+    "name": "update_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Update id"
+  },
+  {
+    "name": "dc_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Distribution center id"
+  },
+  {
+    "name": "customer_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Customer"
+  },
+  {
+    "name": "field",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "std_service_min, lat_lon"
+  },
+  {
+    "name": "old_value",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Value before"
+  },
+  {
+    "name": "new_value",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Value after"
+  },
+  {
+    "name": "reason",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Why the change is proposed"
+  },
+  {
+    "name": "evidence",
+    "type": "JSON",
+    "mode": "NULLABLE",
+    "description": "Numbers behind the change"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "APPLIED (used in planning, queued for TMW) or REJECTED"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Created"
+  }
+]

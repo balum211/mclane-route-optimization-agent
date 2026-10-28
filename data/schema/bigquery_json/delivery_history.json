@@ -24,22 +24,52 @@
     "description": "Date"
   },
   {
+    "name": "tractor_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Truck that delivered"
+  },
+  {
     "name": "planned_arrival_min",
     "type": "INTEGER",
     "mode": "NULLABLE",
-    "description": "Planned arrival"
+    "description": "Scheduled arrival in the dispatched plan"
   },
   {
     "name": "actual_arrival_min",
     "type": "INTEGER",
     "mode": "NULLABLE",
-    "description": "Actual arrival"
+    "description": "Actual arrival (geofence entry, or driver app when the geofence missed)"
+  },
+  {
+    "name": "actual_departure_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Actual departure (geofence exit, or driver app)"
+  },
+  {
+    "name": "arrival_source",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "GEOFENCE or DRIVER_APP"
   },
   {
     "name": "dwell_min",
     "type": "INTEGER",
     "mode": "NULLABLE",
-    "description": "Actual time on site"
+    "description": "Time on site: departure minus arrival"
+  },
+  {
+    "name": "gps_stop_lat",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Latitude where the truck actually parked (telematics stop detection)"
+  },
+  {
+    "name": "gps_stop_lon",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Longitude where the truck actually parked"
   },
   {
     "name": "cases",
@@ -51,7 +81,7 @@
     "name": "on_time",
     "type": "BOOLEAN",
     "mode": "NULLABLE",
-    "description": "Arrived inside window"
+    "description": "On time under the Retail or Restaurant OTD policy of the customer"
   },
   {
     "name": "exception_code",

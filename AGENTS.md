@@ -2,7 +2,9 @@
 
 ## What this repo is
 A Google ADK multi-agent system that plans and re-plans McLane delivery routes.
-OR-Tools does the optimization, Gemini explains and orchestrates, and Trimble TMW is the TMS of record.
+OR-Tools does the optimization, Gemini explains and orchestrates, Trimble TMW is the TMS of record and
+Trimble PC*MILER the mileage of record. GPS pings and geofences timestamp arrivals, departures and dwell;
+on-time delivery is reported separately for Retail and Restaurant customers.
 Read `.agents/rules/project-context.md` for the repo map and domain glossary.
 
 ## Ground rules
@@ -20,16 +22,30 @@ Read `.agents/rules/project-context.md` for the repo map and domain glossary.
 - **Tests first.** `python -m pytest -q` must pass. It runs offline on SQLite with no Gemini calls.
   Add a test for every new tool or event type.
 - **Latency.** Event re-plans must finish under 30 s. Keep solver time limits in config.
+- **Mileage of record is PC*MILER.** Anything saved or sent to TMW carries `pcmiler_miles` from
+  `route_optimizer/pcmiler.py`. Offline output is labelled `PCMILER_EMULATED`; never present it as
+  real PC*MILER output.
+- **OTD has two definitions.** Retail by receiving-window close, Restaurant by scheduled time ±30 min
+  and inside the window. Both live only in `route_optimizer/otd.py` and the `otd_policies` table.
+- **Geofence facts come from tools.** Arrivals, departures and dwell come from `geofence.py` and
+  `location_tools.py`, never from prompt reasoning. Master-data fixes go through
+  `apply_master_data_updates` (confirmation required) and are insert-only.
 - Style: 2-space indentation, type hints, Google-style docstrings (ADK turns docstrings into tool
   descriptions, so write them for the model).
 - Save plans and design docs to `docs/plans/YYYY-MM-DD-<topic>.md`.
 - Never commit `.env`, credentials or the generated `data/mclane_routing.db`.
 
+- Use spec-kit for new features: `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`,
+  `/speckit.implement` (workflows in `.agents/workflows/`), artifacts in `specs/<NNN-feature>/`.
+- When asked to ask questions, use the ask_question tool.
+
 ## Commands
 ```bash
-uv sync                      # or: pip install -r requirements.txt pytest
-python data/generate_synthetic_data.py
-python -m pytest -q
-adk web .                    # dev UI, pick route_optimizer
-python scripts/demo_run.py   # offline before/after KPIs + disruption demo
+uv sync                                   # or: pip install -r requirements.txt pytest
+uv run python data/generate_synthetic_data.py
+uv run pytest -q
+uv run adk web .                          # dev UI, pick route_optimizer
+uv run uvicorn server:app --port 8080     # FastAPI server with the ADK endpoints
+uv run python scripts/demo_run.py         # offline KPIs, disruptions, geofence, dwell, geocodes, OTD
+toolbox --tools-file tools.yaml           # optional MCP Toolbox (read-only SQL tools)
 ```

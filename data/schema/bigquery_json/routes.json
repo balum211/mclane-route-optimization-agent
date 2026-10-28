@@ -69,7 +69,19 @@
     "name": "total_miles",
     "type": "FLOAT",
     "mode": "NULLABLE",
-    "description": "Planned road miles"
+    "description": "Planned road miles from the routing matrix"
+  },
+  {
+    "name": "pcmiler_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "Trimble PC*MILER miles for the stop sequence (mileage of record in TMW)"
+  },
+  {
+    "name": "mileage_source",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "PCMILER (live API) or PCMILER_EMULATED (offline estimate)"
   },
   {
     "name": "total_duration_min",

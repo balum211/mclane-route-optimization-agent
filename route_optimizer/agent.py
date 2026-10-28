@@ -5,9 +5,10 @@
     ├── disruption_agent                events: trigger > assess > re-plan > explain > approve
     ├── tms_dispatch_agent              Trimble TMW payloads and dispatch
     ├── customer_comms_agent            ETA notices to stores/restaurants
-    └── analytics_agent                 KPIs, savings, optional BigQuery NL2SQL
+    ├── location_intelligence_agent     GPS, geofences, dwell time changes, geocodes
+    └── analytics_agent                 Retail/Restaurant OTD, KPIs, savings, BigQuery NL2SQL
 
-Run locally:   adk web .     (from the repo root)
+Run locally:   uv run adk web .     (from the repo root, as in the Antigravity codelabs)
 """
 
 from __future__ import annotations
@@ -19,7 +20,16 @@ from google.genai import types
 
 from . import prompts
 from .config import get_settings
-from .tools import analytics_tools, comms_tools, data_tools, disruption_tools, event_tools, planning_tools, tms_tools
+from .tools import (
+    analytics_tools,
+    comms_tools,
+    data_tools,
+    disruption_tools,
+    event_tools,
+    location_tools,
+    planning_tools,
+    tms_tools,
+)
 
 log = logging.getLogger(__name__)
 settings = get_settings()
@@ -54,6 +64,24 @@ def _bigquery_tools() -> list:
     return []
 
 
+def _toolbox_tools() -> list:
+  """Read-only MCP Toolbox tools (tools.yaml) when a Toolbox server is running at TOOLBOX_URL."""
+  url = settings.toolbox_url
+  if not url:
+    return []
+  client = None
+  try:
+    from toolbox_core import ToolboxSyncClient
+
+    client = ToolboxSyncClient(url)
+    return list(client.load_toolset(settings.toolbox_toolset))
+  except Exception as e:  # never block the agent on optional tooling
+    log.warning("MCP Toolbox tools disabled (%s): %s", url, e)
+    if client is not None:
+      client.close()
+    return []
+
+
 route_planner_agent = LlmAgent(
     name="route_planner_agent",
     model=settings.coordinator_model,
@@ -74,7 +102,8 @@ disruption_agent = LlmAgent(
     name="disruption_agent",
     model=settings.specialist_model,
     description=(
-        "Handles real-time events (delays, breakdowns, added or cancelled orders, closures, no-shows, reefer alerts): "
+        "Handles real-time events (delays, breakdowns, added or cancelled orders, closures, no-shows, reefer alerts, "
+        "geofence dwell overruns): "
         "re-plans only affected routes, explains changes, escalates to a dispatcher when needed."
     ),
     instruction=prompts.DISRUPTION,
@@ -87,6 +116,7 @@ disruption_agent = LlmAgent(
         data_tools.get_active_disruptions,
         disruption_tools.assess_disruption_impact,
         disruption_tools.reoptimize_route_in_flight,
+        location_tools.get_vehicle_locations,
         planning_tools.get_route_plan,
     ],
     generate_content_config=_precise,
@@ -114,16 +144,37 @@ customer_comms_agent = LlmAgent(
     generate_content_config=_precise,
 )
 
+location_intelligence_agent = LlmAgent(
+    name="location_intelligence_agent",
+    model=settings.specialist_model,
+    description=(
+        "Truck GPS positions, geofence arrivals and departures, dwell time and dwell time changes, customer "
+        "geolocation (geocode) checks, and the TMW master-data fixes that follow."
+    ),
+    instruction=prompts.LOCATION_INTELLIGENCE,
+    tools=[
+        location_tools.get_vehicle_locations,
+        location_tools.detect_geofence_events,
+        location_tools.analyze_dwell_time_changes,
+        location_tools.validate_customer_geolocations,
+        location_tools.apply_master_data_updates_tool,
+        data_tools.get_customer_profile,
+    ],
+    generate_content_config=_precise,
+)
+
 analytics_agent = LlmAgent(
     name="analytics_agent",
     model=settings.specialist_model,
-    description="Delivery KPIs, unload-time gaps, optimization savings history and network roll-ups.",
+    description="Retail and Restaurant on-time delivery (OTD), delivery KPIs, unload-time gaps, savings history and network roll-ups.",
     instruction=prompts.ANALYTICS,
     tools=[
+        analytics_tools.get_otd_by_segment,
         analytics_tools.get_delivery_kpis,
         analytics_tools.list_optimization_runs,
         analytics_tools.get_network_savings_summary,
         *_bigquery_tools(),
+        *_toolbox_tools(),
     ],
     generate_content_config=_precise,
 )
@@ -134,6 +185,13 @@ root_agent = LlmAgent(
     description="McLane dynamic route optimization coordinator for dispatchers and transportation managers.",
     instruction=prompts.COORDINATOR,
     tools=[data_tools.list_distribution_centers],
-    sub_agents=[route_planner_agent, disruption_agent, tms_dispatch_agent, customer_comms_agent, analytics_agent],
+    sub_agents=[
+        route_planner_agent,
+        disruption_agent,
+        tms_dispatch_agent,
+        customer_comms_agent,
+        location_intelligence_agent,
+        analytics_agent,
+    ],
     generate_content_config=_precise,
 )

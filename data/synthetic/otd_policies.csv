@@ -1,0 +1,3 @@
+segment_group,segments,measure_against,early_tolerance_min,late_tolerance_min,target_pct,arrival_event,description
+RETAIL,"CONVENIENCE,GROCERY,MASS_MERCHANT",RECEIVING_WINDOW,,0,95.0,"GEOFENCE_ENTRY, else DRIVER_APP",On time when the truck arrives (geofence entry) no later than the receiving window close. Early is fine.
+RESTAURANT,"QSR,CASUAL_DINING",SCHEDULED_TIME,30,30,98.0,"GEOFENCE_ENTRY, else DRIVER_APP",On time when the truck arrives within 30 minutes either side of the scheduled delivery time and before the receiving window closes.
