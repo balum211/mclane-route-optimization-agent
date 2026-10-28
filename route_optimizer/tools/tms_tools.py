@@ -3,7 +3,10 @@
 Plans are translated into the TMW.Suite object model: one *movement* per
 truck, one *leg header* carrying tractor / trailer / driver assignments, and
 an ordered list of *stops* (pickup at the DC, then drops) linked back to each
-order header. Messages land in ``tmw_dispatch_queue``. When
+order header. Mileage on the leg header and stops is PC*MILER, the mileage
+TMW rates, pays and bills on (``lgh_miles``, ``stp_lgh_mileage``); the
+payload says whether it came from the live PC*MILER service or the offline
+emulation. Messages land in ``tmw_dispatch_queue``. When
 ``TMW_API_BASE_URL`` is set, they are also POSTed there; point it at your
 TMW integration endpoint (for example a Trimble integration / REST gateway or
 an internal middleware service) and adapt ``_post`` to its contract.
@@ -15,6 +18,7 @@ import datetime as dt
 
 from google.adk.tools import FunctionTool, ToolContext
 
+from .. import pcmiler
 from ..config import get_settings
 from ..db.repository import get_repository
 from ._common import ToolError, new_id, now_ts, q
@@ -57,11 +61,14 @@ def _payloads(plan_id: str) -> list[dict]:
           "stp_countunit": "CAS",
           "stp_weight": s["weight_lbs"],
           "stp_weightunit": "LBS",
-          "stp_ord_mileage": s["miles_from_prev"],
+          "stp_lgh_mileage": s.get("pcmiler_leg_miles") if s.get("pcmiler_leg_miles") is not None else s["miles_from_prev"],
       })
+    total = r.get("pcmiler_miles") if r.get("pcmiler_miles") is not None else r["total_miles"]
     tmw_stops.append({
         "stp_sequence": len(tmw_stops) + 1, "stp_event": "EMT", "stp_type": "NONE", "cmp_id": dc["dc_id"],
         "stp_arrivaldate": _iso(date, r["return_min"]),
+        # Empty miles back to the DC, so the stop mileages add up to the leg header.
+        "stp_lgh_mileage": round(float(total) - sum(float(s.get("stp_lgh_mileage") or 0) for s in tmw_stops), 1),
     })
     out.append({
         "route_id": r["route_id"],
@@ -74,7 +81,9 @@ def _payloads(plan_id: str) -> list[dict]:
                 "lgh_driver1": r["driver_id"],
                 "lgh_startdate": _iso(date, r["depart_min"]),
                 "lgh_enddate": _iso(date, r["return_min"]),
-                "lgh_miles": r["total_miles"],
+                "lgh_miles": total,
+                "mileage_source": r.get("mileage_source") or "ROUTING_MATRIX",
+                "mileage_type": f"PC*MILER {pcmiler.routing_type().title()}",
                 "lgh_outstatus": "PLN",
             },
             "stops": tmw_stops,

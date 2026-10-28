@@ -12,7 +12,9 @@ apply in TMW without manual re-keying.
 ## Instructions
 1. Read `references/tmw_object_model.md` for the object mapping used here.
 2. Message builders live in `route_optimizer/tools/tms_tools.py` (`_payloads`). New plans produce
-   `CREATE_MOVEMENT`; event re-plans (`EVP-*`, `RPL-*`) produce `UPDATE_STOPS`.
+   `CREATE_MOVEMENT`; event re-plans (`EVP-*`, `RPL-*`) produce `UPDATE_STOPS`. Master-data fixes
+   from `location_tools.apply_master_data_updates` produce `COMPANY_UPDATE`. Miles are PC*MILER
+   (see the pcmiler-mileage skill).
 3. The default transport is the `tmw_dispatch_queue` table. To post live, set `TMW_API_BASE_URL`
    (and `TMW_API_TOKEN`) and adapt `_post()` to McLane's integration contract (TMW.Suite REST API,
    Trimble integration services, or internal middleware). Keep the queue write: it is the audit trail.

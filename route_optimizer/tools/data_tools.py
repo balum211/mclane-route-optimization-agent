@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 
 from ..geo import fmt_time, haversine_miles
+from ..otd import segment_group
 from ._common import ToolError, as_date, load_dc, load_disruptions, load_learned_service, load_vehicles, q
 
 
@@ -133,9 +134,10 @@ def get_customer_profile(customer_id: str) -> dict:
     customer_id: Customer id, e.g. "C-TEM-0042".
 
   Returns:
-    Master data from the TMS (window, standard unload time, restrictions),
-    plus history: on-time rate, typical arrival delay, learned p75 unload time
-    and the most common delivery exceptions.
+    Master data from the TMS (window, standard unload time, restrictions,
+    geolocation and geofence), plus history: OTD under the Retail or
+    Restaurant policy, typical arrival delay, learned p75 unload time, how
+    often the geofence caught the arrival, and the most common exceptions.
   """
   rows = q("SELECT * FROM customers WHERE customer_id = :cid", cid=customer_id.strip().upper())
   if not rows:
@@ -149,11 +151,14 @@ def get_customer_profile(customer_id: str) -> dict:
   delays = sorted(int(h["actual_arrival_min"]) - int(h["planned_arrival_min"]) for h in hist)
   learned = load_learned_service(c["dc_id"]).get(c["customer_id"])
   exc = Counter(h["exception_code"] for h in hist if h["exception_code"] != "NONE")
+  fences = q("SELECT * FROM geofences WHERE entity_id = :cid", cid=c["customer_id"])
+  geo_hits = [h for h in hist if h.get("arrival_source") == "GEOFENCE"]
   return {
       "customer_id": c["customer_id"],
       "tmw_cmp_id": c["tmw_cmp_id"],
       "name": c["name"],
       "segment": c["segment"],
+      "otd_group": segment_group(c["segment"]),
       "address": f"{c['address']}, {c['city']}, {c['state']}",
       "dc_id": c["dc_id"],
       "receiving_window": f"{fmt_time(c['window_start_min'])}-{fmt_time(c['window_end_min'])}",
@@ -167,6 +172,11 @@ def get_customer_profile(customer_id: str) -> dict:
       "on_time_rate_pct": round(100 * sum(on_time) / len(on_time), 1) if on_time else None,
       "median_arrival_delay_min": delays[len(delays) // 2] if delays else None,
       "top_exceptions": dict(exc.most_common(3)),
+      "geolocation": {"lat": c["lat"], "lon": c["lon"], "source": c.get("geocode_source"),
+                      "confidence": c.get("geocode_confidence")},
+      "geofence": ({"geofence_id": fences[0]["geofence_id"], "radius_m": fences[0]["radius_m"],
+                    "source": fences[0]["source"]} if fences else None),
+      "geofence_arrival_capture_pct": round(100 * len(geo_hits) / len(hist), 1) if hist else None,
   }
 
 

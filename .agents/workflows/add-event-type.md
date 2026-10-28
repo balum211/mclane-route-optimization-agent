@@ -13,4 +13,7 @@ Input: the event type name and the business rule, e.g. "DRIVER_HOS_WARNING: driv
 4. Add a seed event for 2026-10-27 in `gen_route_events` and a test in `tests/test_tools.py` asserting
    status, latency under 30 s, `untouched_routes > 0` and the escalation rule.
 5. Update the event table in `route_optimizer/prompts.py` (DISRUPTION) and `docs/SOLUTION.md` §3.
-6. Run `python -m pytest -q` and show the new event's output from `simulate_route_event`.
+6. If the event comes from telematics or the geofence engine, put the running `route_id` in the
+   payload so `_handle` re-plans the route the truck is actually on. Make sure `otd_impact` still
+   reports Retail and Restaurant OTD.
+7. Run `uv run pytest -q` and show the new event's output from `simulate_route_event`.

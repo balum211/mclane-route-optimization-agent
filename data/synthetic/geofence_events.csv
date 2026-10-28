@@ -1,0 +1,1 @@
+geofence_event_id,dc_id,event_date,tractor_id,route_id,geofence_id,entity_type,entity_id,arrive_min,depart_min,dwell_min,planned_service_min,created_at

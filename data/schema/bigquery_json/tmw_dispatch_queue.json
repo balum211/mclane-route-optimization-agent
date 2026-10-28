@@ -21,7 +21,7 @@
     "name": "message_type",
     "type": "STRING",
     "mode": "NULLABLE",
-    "description": "CREATE_MOVEMENT, UPDATE_STOPS, CANCEL"
+    "description": "CREATE_MOVEMENT, UPDATE_STOPS, CANCEL, COMPANY_UPDATE"
   },
   {
     "name": "payload",

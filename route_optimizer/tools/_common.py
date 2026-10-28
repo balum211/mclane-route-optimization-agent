@@ -10,6 +10,7 @@ from typing import Optional
 from ..db.repository import get_repository
 from ..geo import Disruption, Point, haversine_miles
 from ..optimizer import CostModel, Stop, Vehicle
+from ..otd import OtdPolicy, policies_from_rows
 from ..planning import (
     cost_model_from_row,
     depot_point,
@@ -54,13 +55,38 @@ def load_dc(dc_id: str) -> dict:
 
 
 def load_customers(dc_id: str) -> dict[str, dict]:
-  return {r["customer_id"]: r for r in q("SELECT * FROM customers WHERE dc_id = :dc_id", dc_id=dc_id)}
+  """Customer master data with any agent-applied corrections layered on top.
+
+  Corrections (a fixed geocode, a new standard unload time) are written to
+  ``master_data_updates`` and queued for TMW. Planning uses them right away
+  instead of waiting for the TMW round trip.
+  """
+  customers = {r["customer_id"]: r for r in q("SELECT * FROM customers WHERE dc_id = :dc_id", dc_id=dc_id)}
+  updates = q(
+      "SELECT customer_id, field, new_value, created_at FROM master_data_updates "
+      "WHERE dc_id = :dc_id AND status = 'APPLIED' ORDER BY created_at",
+      dc_id=dc_id,
+  )
+  for u in updates:
+    c = customers.get(u["customer_id"])
+    if c is None:
+      continue
+    if u["field"] == "lat_lon":
+      lat, lon = (float(x) for x in str(u["new_value"]).split(","))
+      c.update(lat=lat, lon=lon, geocode_source="GPS_LEARNED", geocode_confidence="HIGH")
+    elif u["field"] == "std_service_min":
+      c["std_service_min"] = int(float(u["new_value"]))
+  return customers
 
 
 def load_learned_service(dc_id: str) -> dict[str, int]:
   return learned_service_minutes(
-      q("SELECT customer_id, dwell_min FROM delivery_history WHERE dc_id = :dc_id", dc_id=dc_id)
+      q("SELECT customer_id, delivery_date, dwell_min FROM delivery_history WHERE dc_id = :dc_id", dc_id=dc_id)
   )
+
+
+def load_otd_policies() -> dict[str, OtdPolicy]:
+  return policies_from_rows(q("SELECT * FROM otd_policies"))
 
 
 def load_disruptions(dc: dict, date: dt.date) -> tuple[list[Disruption], list[dict]]:

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 
-from ._common import ToolError, as_date, load_dc, load_learned_service, q
+from ..otd import segment_group, summarize
+from ._common import ToolError, as_date, load_dc, load_learned_service, load_otd_policies, q
 
 
 def get_delivery_kpis(dc_id: str, start_date: str = "", end_date: str = "") -> dict:
@@ -16,12 +17,13 @@ def get_delivery_kpis(dc_id: str, start_date: str = "", end_date: str = "") -> d
     end_date: Optional YYYY-MM-DD upper bound.
 
   Returns:
-    On-time %, exception mix, average dwell, the gap between TMS standard
-    unload times and what really happens, and the ten least reliable
-    customers.
+    OTD % (Retail and Restaurant policies), Retail and Restaurant OTD
+    against target, exception mix, average dwell, the gap between TMS
+    standard unload times and what really happens, and the ten least
+    reliable customers.
   """
   dc = load_dc(dc_id)
-  sql = "SELECT h.*, c.name, c.std_service_min FROM delivery_history h JOIN customers c ON h.customer_id = c.customer_id WHERE h.dc_id = :dc"
+  sql = "SELECT h.*, c.name, c.std_service_min, c.segment FROM delivery_history h JOIN customers c ON h.customer_id = c.customer_id WHERE h.dc_id = :dc"
   params = {"dc": dc["dc_id"]}
   if start_date:
     sql += " AND h.delivery_date >= :s"
@@ -53,6 +55,9 @@ def get_delivery_kpis(dc_id: str, start_date: str = "", end_date: str = "") -> d
       "deliveries": len(rows),
       "date_range": [min(r["delivery_date"] for r in rows), max(r["delivery_date"] for r in rows)],
       "on_time_pct": round(100 * sum(b(r["on_time"]) for r in rows) / len(rows), 1),
+      "otd_by_group": {k: v for k, v in summarize(
+          [{"segment": r["segment"], "on_time": b(r["on_time"])} for r in rows], load_otd_policies()).items()
+          if k != "by_segment"},
       "exceptions": dict(Counter(r["exception_code"] for r in rows)),
       "avg_dwell_min": round(sum(int(r["dwell_min"]) for r in rows) / len(rows), 1),
       "unload_time_gap": {
@@ -125,3 +130,74 @@ def get_network_savings_summary(delivery_date: str) -> dict:
           "savings_usd": round(tot("baseline_cost_usd") - tot("cost_usd"), 2),
       },
   }
+
+
+def get_otd_by_segment(dc_id: str = "", start_date: str = "", end_date: str = "") -> dict:
+  """Retail versus Restaurant on-time delivery (OTD) against target.
+
+  Retail (c-store, grocery, mass merchant) is on time when the truck arrives
+  no later than the receiving window close. Restaurant (QSR, casual dining)
+  is on time within 30 minutes of the scheduled delivery time and inside the
+  window. Arrival is the geofence entry, or the driver app when the geofence
+  missed.
+
+  Args:
+    dc_id: Optional DC filter. Empty gives the whole network with a per-DC split.
+    start_date: Optional YYYY-MM-DD lower bound.
+    end_date: Optional YYYY-MM-DD upper bound.
+
+  Returns:
+    OTD % and target gap for RETAIL and RESTAURANT, OTD by segment and by
+    DC, the main causes of misses per group, early versus late misses for
+    restaurants, and the banners with the lowest OTD.
+  """
+  sql = ("SELECT h.dc_id, h.on_time, h.exception_code, h.actual_arrival_min, h.planned_arrival_min, "
+         "h.arrival_source, c.segment, c.banner, c.window_end_min FROM delivery_history h "
+         "JOIN customers c ON h.customer_id = c.customer_id WHERE 1 = 1")
+  params = {}
+  if dc_id:
+    sql += " AND h.dc_id = :dc"
+    params["dc"] = load_dc(dc_id)["dc_id"]
+  if start_date:
+    sql += " AND h.delivery_date >= :s"
+    params["s"] = as_date(start_date)
+  if end_date:
+    sql += " AND h.delivery_date <= :e"
+    params["e"] = as_date(end_date)
+  rows = q(sql, **params)
+  if not rows:
+    raise ToolError("No delivery history in that range.")
+  b = lambda v: str(v).lower() in {"1", "true", "t"}
+  policies = load_otd_policies()
+  recs = [{"segment": r["segment"], "on_time": b(r["on_time"])} for r in rows]
+  out = summarize(recs, policies)
+  causes = defaultdict(Counter)
+  rest_early = rest_late = 0
+  by_banner = defaultdict(list)
+  by_dc = defaultdict(list)
+  for r in rows:
+    g = segment_group(r["segment"])
+    by_banner[(g, r["banner"])].append(b(r["on_time"]))
+    by_dc[r["dc_id"]].append({"segment": r["segment"], "on_time": b(r["on_time"])})
+    if not b(r["on_time"]):
+      causes[g][r["exception_code"]] += 1
+      if g == "RESTAURANT":
+        if int(r["actual_arrival_min"]) < int(r["planned_arrival_min"]):
+          rest_early += 1
+        else:
+          rest_late += 1
+  for g in ("RETAIL", "RESTAURANT"):
+    out[g]["miss_causes"] = dict(causes[g].most_common(5))
+  out["RESTAURANT"]["misses_early_vs_late"] = {"early": rest_early, "late": rest_late}
+  out["by_dc"] = {
+      d: {k: v["otd_pct"] for k, v in summarize(v, policies).items() if k in ("RETAIL", "RESTAURANT")}
+      for d, v in sorted(by_dc.items())
+  }
+  out["lowest_otd_banners"] = sorted(
+      ({"group": g, "banner": bn, "deliveries": len(v), "otd_pct": round(100 * sum(v) / len(v), 1)}
+       for (g, bn), v in by_banner.items() if len(v) >= 20),
+      key=lambda x: x["otd_pct"],
+  )[:6]
+  out["date_range"] = [start_date or "all", end_date or "all"]
+  out["geofence_arrival_share_pct"] = round(100 * sum(1 for r in rows if r["arrival_source"] == "GEOFENCE") / len(rows), 1)
+  return out

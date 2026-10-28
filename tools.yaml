@@ -1,0 +1,189 @@
+# MCP Toolbox for Databases (https://github.com/googleapis/genai-toolbox): read-only SQL tools
+# over the McLane routing data, in the same `kind: source` / `kind: tool` format as the
+# sdd-adk-antigravity codelab starter.
+#
+#   toolbox --tools-file tools.yaml            # HTTP on :5000; set TOOLBOX_URL=http://127.0.0.1:5000
+#   toolbox --tools-file tools.yaml --stdio    # as an MCP server in Antigravity (see antigravity/mcp_config.json)
+#
+# AlloyDB tables live in the mclane_routing schema (data/load_alloydb.py). Postgres tools take
+# positional $1, $2 parameters; BigQuery tools take @name parameters. Writes never go through
+# Toolbox: the ADK tools own every write so they can ask for confirmation and log an audit row.
+
+kind: source
+name: mclane-alloydb
+type: alloydb-postgres
+project: ${GOOGLE_CLOUD_PROJECT}
+region: ${REGION}
+cluster: mclane
+instance: mclane-primary
+database: mclane
+user: ${PG_USER}
+password: ${PG_PASSWORD}
+
+---
+
+kind: source
+name: mclane-bigquery
+type: bigquery
+project: ${GOOGLE_CLOUD_PROJECT}
+
+---
+
+kind: tool
+name: open-orders-for-dc-date
+type: postgres-sql
+source: mclane-alloydb
+description: >
+  Open delivery orders for a DC and date with the customer's receiving window, segment and
+  temperature mix. Use to see what has to be delivered.
+parameters:
+  - name: dc_id
+    type: string
+    description: Distribution center id, e.g. DC-TEMPLE-TX
+  - name: delivery_date
+    type: string
+    description: Delivery date as YYYY-MM-DD
+statement: |
+  SELECT o.order_id, o.customer_id, c.name, c.segment, o.dry_cases, o.chill_cases, o.frozen_cases,
+         o.priority, c.window_start_min, c.window_end_min
+  FROM mclane_routing.orders o
+  JOIN mclane_routing.customers c ON o.customer_id = c.customer_id
+  WHERE o.dc_id = $1 AND o.delivery_date = $2::date
+  ORDER BY o.order_id
+
+---
+
+kind: tool
+name: pending-escalations
+type: postgres-sql
+source: mclane-alloydb
+description: Re-plans waiting for a dispatcher decision, with cost impact and escalation reasons.
+statement: |
+  SELECT a.action_id, a.event_id, a.cost_impact_usd, a.late_stops_after, a.escalation_reasons
+  FROM mclane_routing.event_actions a
+  LEFT JOIN mclane_routing.replan_approvals p ON p.action_id = a.action_id
+  WHERE a.status = 'PENDING_APPROVAL' AND p.action_id IS NULL
+
+---
+
+kind: tool
+name: dwell-over-plan
+type: postgres-sql
+source: mclane-alloydb
+description: >
+  Completed geofence visits (entry to exit at a customer) for a DC and date, the stops that ran
+  furthest over the unload time the plan allowed first. Rows are written by the agent's
+  detect_geofence_events tool.
+parameters:
+  - name: dc_id
+    type: string
+    description: Distribution center id
+  - name: event_date
+    type: string
+    description: Operating date as YYYY-MM-DD
+statement: |
+  SELECT g.tractor_id, g.route_id, g.entity_id AS customer_id, c.name, g.arrive_min, g.dwell_min,
+         g.planned_service_min, g.dwell_min - g.planned_service_min AS over_plan_min
+  FROM mclane_routing.geofence_events g
+  JOIN mclane_routing.customers c ON c.customer_id = g.entity_id
+  WHERE g.dc_id = $1 AND g.event_date = $2::date
+  ORDER BY over_plan_min DESC
+  LIMIT 25
+
+---
+
+kind: tool
+name: otd-by-segment-group
+type: bigquery-sql
+source: mclane-bigquery
+description: >
+  Retail versus Restaurant on-time delivery percentage per DC between two dates.
+  delivery_history.on_time already applies the Retail (receiving window) or Restaurant
+  (scheduled time plus or minus 30 minutes) policy.
+parameters:
+  - name: start_date
+    type: string
+    description: First date, YYYY-MM-DD
+  - name: end_date
+    type: string
+    description: Last date, YYYY-MM-DD
+statement: |
+  SELECT h.dc_id,
+         IF(c.segment IN ('QSR', 'CASUAL_DINING'), 'RESTAURANT', 'RETAIL') AS segment_group,
+         COUNT(*) AS deliveries,
+         ROUND(100 * AVG(IF(h.on_time, 1, 0)), 1) AS otd_pct
+  FROM `mclane_routing.delivery_history` h
+  JOIN `mclane_routing.customers` c ON c.customer_id = h.customer_id
+  WHERE h.delivery_date BETWEEN DATE(@start_date) AND DATE(@end_date)
+  GROUP BY h.dc_id, segment_group
+  ORDER BY h.dc_id, segment_group
+
+---
+
+kind: tool
+name: dwell-trend-by-customer
+type: bigquery-sql
+source: mclane-bigquery
+description: >
+  Median dwell (geofence entry to exit) per customer in the last 14 days versus the days
+  before, next to the TMW standard unload time. Use to spot dwell time changes.
+parameters:
+  - name: dc_id
+    type: string
+    description: Distribution center id
+  - name: as_of_date
+    type: string
+    description: Last day of the recent window, YYYY-MM-DD
+statement: |
+  WITH h AS (
+    SELECT customer_id, dwell_min,
+           delivery_date > DATE_SUB(DATE(@as_of_date), INTERVAL 14 DAY) AS recent
+    FROM `mclane_routing.delivery_history`
+    WHERE dc_id = @dc_id AND delivery_date <= DATE(@as_of_date)
+  )
+  SELECT h.customer_id, c.name, c.std_service_min AS tms_standard_min,
+         APPROX_QUANTILES(IF(NOT recent, dwell_min, NULL), 2)[OFFSET(1)] AS baseline_median_min,
+         APPROX_QUANTILES(IF(recent, dwell_min, NULL), 2)[OFFSET(1)] AS recent_median_min
+  FROM h JOIN `mclane_routing.customers` c USING (customer_id)
+  GROUP BY h.customer_id, c.name, c.std_service_min
+  HAVING recent_median_min IS NOT NULL
+  ORDER BY ABS(recent_median_min - baseline_median_min) DESC
+  LIMIT 25
+
+---
+
+kind: tool
+name: pcmiler-savings-by-dc
+type: bigquery-sql
+source: mclane-bigquery
+description: >
+  Latest BASE plan per DC for a date: PC*MILER miles and cost versus the TMW static baseline.
+parameters:
+  - name: route_date
+    type: string
+    description: Delivery date, YYYY-MM-DD
+statement: |
+  SELECT dc_id,
+         ARRAY_AGG(STRUCT(plan_id, pcmiler_miles, baseline_pcmiler_miles, total_cost_usd, baseline_cost_usd)
+                   ORDER BY created_at DESC LIMIT 1)[OFFSET(0)] AS latest
+  FROM `mclane_routing.optimization_runs`
+  WHERE route_date = DATE(@route_date) AND scenario = 'BASE'
+  GROUP BY dc_id
+
+---
+
+kind: toolset
+name: mclane-dispatch
+tools:
+  - open-orders-for-dc-date
+  - pending-escalations
+  - dwell-over-plan
+
+---
+
+kind: toolset
+name: mclane-analytics
+tools:
+  - otd-by-segment-group
+  - dwell-trend-by-customer
+  - pcmiler-savings-by-dc

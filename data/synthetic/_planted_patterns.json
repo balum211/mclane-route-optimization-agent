@@ -1,0 +1,345 @@
+{
+ "note": "Ground truth for tests and demos. Not loaded into any database.",
+ "dwell_changes_last_14_days": [
+  {
+   "customer_id": "C-TEM-0001",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.75
+  },
+  {
+   "customer_id": "C-TEM-0002",
+   "cause": "STORE_REMODEL",
+   "factor": 1.43
+  },
+  {
+   "customer_id": "C-TEM-0016",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.68
+  },
+  {
+   "customer_id": "C-TEM-0021",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.45
+  },
+  {
+   "customer_id": "C-TEM-0026",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.39
+  },
+  {
+   "customer_id": "C-TEM-0037",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.6
+  },
+  {
+   "customer_id": "C-TEM-0047",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.51
+  },
+  {
+   "customer_id": "C-TEM-0053",
+   "cause": "STORE_REMODEL",
+   "factor": 1.43
+  },
+  {
+   "customer_id": "C-TEM-0078",
+   "cause": "STORE_REMODEL",
+   "factor": 1.69
+  },
+  {
+   "customer_id": "C-TEM-0081",
+   "cause": "STORE_REMODEL",
+   "factor": 1.54
+  },
+  {
+   "customer_id": "C-TEM-0084",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.37
+  },
+  {
+   "customer_id": "C-TEM-0085",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.26
+  },
+  {
+   "customer_id": "C-TEM-0089",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.73
+  },
+  {
+   "customer_id": "C-TEM-0090",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.68
+  },
+  {
+   "customer_id": "C-TEM-0101",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.77
+  },
+  {
+   "customer_id": "C-TEM-0103",
+   "cause": "STORE_REMODEL",
+   "factor": 1.59
+  },
+  {
+   "customer_id": "C-TEM-0105",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.43
+  },
+  {
+   "customer_id": "C-TEM-0106",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.77
+  },
+  {
+   "customer_id": "C-DAL-0001",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.42
+  },
+  {
+   "customer_id": "C-DAL-0005",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.42
+  },
+  {
+   "customer_id": "C-DAL-0016",
+   "cause": "STORE_REMODEL",
+   "factor": 1.69
+  },
+  {
+   "customer_id": "C-DAL-0019",
+   "cause": "STORE_REMODEL",
+   "factor": 1.79
+  },
+  {
+   "customer_id": "C-DAL-0047",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.77
+  },
+  {
+   "customer_id": "C-DAL-0058",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.76
+  },
+  {
+   "customer_id": "C-DAL-0059",
+   "cause": "STORE_REMODEL",
+   "factor": 1.48
+  },
+  {
+   "customer_id": "C-DAL-0063",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.39
+  },
+  {
+   "customer_id": "C-DAL-0069",
+   "cause": "STORE_REMODEL",
+   "factor": 1.67
+  },
+  {
+   "customer_id": "C-DAL-0071",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.55
+  },
+  {
+   "customer_id": "C-DAL-0077",
+   "cause": "STORE_REMODEL",
+   "factor": 1.52
+  },
+  {
+   "customer_id": "C-DAL-0089",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.57
+  },
+  {
+   "customer_id": "C-CON-0003",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.67
+  },
+  {
+   "customer_id": "C-CON-0015",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.41
+  },
+  {
+   "customer_id": "C-CON-0019",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.3
+  },
+  {
+   "customer_id": "C-CON-0025",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.4
+  },
+  {
+   "customer_id": "C-CON-0034",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.46
+  },
+  {
+   "customer_id": "C-CON-0035",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.69
+  },
+  {
+   "customer_id": "C-CON-0046",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.66
+  },
+  {
+   "customer_id": "C-CON-0047",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.57
+  },
+  {
+   "customer_id": "C-CON-0051",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.66
+  },
+  {
+   "customer_id": "C-CON-0052",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.27
+  },
+  {
+   "customer_id": "C-CON-0060",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.42
+  },
+  {
+   "customer_id": "C-CON-0068",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.8
+  },
+  {
+   "customer_id": "C-CON-0069",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.49
+  },
+  {
+   "customer_id": "C-CON-0074",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.36
+  },
+  {
+   "customer_id": "C-CON-0096",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.5
+  },
+  {
+   "customer_id": "C-PHO-0004",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.26
+  },
+  {
+   "customer_id": "C-PHO-0017",
+   "cause": "STORE_REMODEL",
+   "factor": 1.67
+  },
+  {
+   "customer_id": "C-PHO-0018",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.46
+  },
+  {
+   "customer_id": "C-PHO-0028",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.27
+  },
+  {
+   "customer_id": "C-PHO-0033",
+   "cause": "STORE_REMODEL",
+   "factor": 1.61
+  },
+  {
+   "customer_id": "C-PHO-0040",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.69
+  },
+  {
+   "customer_id": "C-PHO-0042",
+   "cause": "STORE_REMODEL",
+   "factor": 1.43
+  },
+  {
+   "customer_id": "C-PHO-0047",
+   "cause": "NEW_RECEIVING_PROCESS",
+   "factor": 1.49
+  },
+  {
+   "customer_id": "C-PHO-0051",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.66
+  },
+  {
+   "customer_id": "C-PHO-0053",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.27
+  },
+  {
+   "customer_id": "C-PHO-0056",
+   "cause": "STORE_REMODEL",
+   "factor": 1.59
+  },
+  {
+   "customer_id": "C-PHO-0069",
+   "cause": "STAFFING_SHORTAGE",
+   "factor": 1.34
+  },
+  {
+   "customer_id": "C-PHO-0076",
+   "cause": "PRE_SCANNED_RECEIVING",
+   "factor": 0.79
+  },
+  {
+   "customer_id": "C-PHO-0077",
+   "cause": "STORE_REMODEL",
+   "factor": 1.7
+  },
+  {
+   "customer_id": "C-PHO-0081",
+   "cause": "STORE_REMODEL",
+   "factor": 1.7
+  }
+ ],
+ "bad_geocodes": [
+  "C-TEM-0020",
+  "C-TEM-0023",
+  "C-TEM-0027",
+  "C-TEM-0033",
+  "C-TEM-0034",
+  "C-TEM-0046",
+  "C-TEM-0048",
+  "C-TEM-0051",
+  "C-TEM-0056",
+  "C-TEM-0062",
+  "C-DAL-0005",
+  "C-DAL-0007",
+  "C-DAL-0011",
+  "C-DAL-0012",
+  "C-DAL-0024",
+  "C-DAL-0028",
+  "C-DAL-0036",
+  "C-DAL-0041",
+  "C-DAL-0063",
+  "C-DAL-0067",
+  "C-DAL-0071",
+  "C-CON-0013",
+  "C-CON-0020",
+  "C-CON-0027",
+  "C-CON-0030",
+  "C-CON-0036",
+  "C-CON-0050",
+  "C-CON-0064",
+  "C-CON-0069",
+  "C-PHO-0014",
+  "C-PHO-0016",
+  "C-PHO-0034",
+  "C-PHO-0041",
+  "C-PHO-0048",
+  "C-PHO-0053",
+  "C-PHO-0062",
+  "C-PHO-0064",
+  "C-PHO-0070"
+ ]
+}

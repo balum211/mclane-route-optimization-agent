@@ -65,4 +65,5 @@ def test_agent_tree():
   from route_optimizer.agent import root_agent
 
   names = {a.name for a in root_agent.sub_agents}
-  assert names == {"route_planner_agent", "disruption_agent", "tms_dispatch_agent", "customer_comms_agent", "analytics_agent"}
+  assert names == {"route_planner_agent", "disruption_agent", "tms_dispatch_agent", "customer_comms_agent",
+                   "location_intelligence_agent", "analytics_agent"}

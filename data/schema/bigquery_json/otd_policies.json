@@ -1,0 +1,50 @@
+[
+  {
+    "name": "segment_group",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "RETAIL (c-store, grocery, mass merchant) or RESTAURANT (QSR, casual dining)"
+  },
+  {
+    "name": "segments",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Customer segments in the group, comma separated"
+  },
+  {
+    "name": "measure_against",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "RECEIVING_WINDOW or SCHEDULED_TIME"
+  },
+  {
+    "name": "early_tolerance_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Minutes before the window or scheduled time still counted on time (NULL = early is fine)"
+  },
+  {
+    "name": "late_tolerance_min",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Minutes after the window close or scheduled time still counted on time"
+  },
+  {
+    "name": "target_pct",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "OTD target in percent"
+  },
+  {
+    "name": "arrival_event",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "What timestamps the arrival: GEOFENCE_ENTRY, falling back to DRIVER_APP"
+  },
+  {
+    "name": "description",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Plain-language definition"
+  }
+]

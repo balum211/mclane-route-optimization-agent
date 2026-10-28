@@ -1,1 +1,1 @@
-plan_id,dc_id,route_date,scenario,parameters,orders_planned,orders_dropped,routes_used,total_miles,total_cost_usd,baseline_miles,baseline_cost_usd,late_stops,co2_kg,created_at
+plan_id,dc_id,route_date,scenario,parameters,orders_planned,orders_dropped,routes_used,total_miles,pcmiler_miles,total_cost_usd,baseline_miles,baseline_pcmiler_miles,baseline_cost_usd,late_stops,co2_kg,created_at

@@ -1,31 +1,40 @@
-.PHONY: install data test web api load-bq load-alloydb deploy-agent-engine deploy-cloud-run events-demo
+.PHONY: install data test web api serve demo toolbox load-bq load-alloydb deploy-agent-engine deploy-cloud-run events-demo
 
 install:
 	uv sync || pip install -r requirements.txt pytest
 
 data:
-	python data/generate_synthetic_data.py
+	uv run python data/generate_synthetic_data.py
 
 test: data
-	python -m pytest -q
+	uv run pytest -q
 
 web: data
-	adk web .
+	uv run adk web .
 
 api: data
-	adk api_server .
+	uv run adk api_server .
 
 load-bq:
-	python data/load_bigquery.py --project $(GOOGLE_CLOUD_PROJECT) --replace
+	uv run python data/load_bigquery.py --project $(GOOGLE_CLOUD_PROJECT) --replace
 
 load-alloydb:
-	python data/load_alloydb.py --replace
+	uv run python data/load_alloydb.py --replace
 
 events-demo: data
-	python -m route_optimizer.event_bus local --file scripts/sample_events/breakdown.json --no-llm
+	uv run python -m route_optimizer.event_bus local --file scripts/sample_events/breakdown.json --no-llm
 
 deploy-agent-engine:
 	bash deployment/deploy_agent_engine.sh
 
 deploy-cloud-run:
 	bash deployment/deploy_cloud_run.sh
+
+serve: data
+	uv run uvicorn server:app --host 0.0.0.0 --port 8080
+
+demo: data
+	uv run python scripts/demo_run.py
+
+toolbox:
+	toolbox --tools-file tools.yaml

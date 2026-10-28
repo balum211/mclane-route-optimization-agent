@@ -7,3 +7,4 @@ EVT-DAL-01,DC-DALLAS-TX,2026-10-27,420,NO_SHOW,DRIVER_APP,,C-DAL-0004,O-20261027
 EVT-DAL-02,DC-DALLAS-TX,2026-10-27,410,REEFER_TEMP_ALERT,TELEMATICS,TRC-DAL-002,,,,,,,,"{""zone"": ""FROZEN"", ""temp_f"": 18, ""setpoint_f"": -10}",Frozen compartment reading 18F and rising (setpoint -10F)
 EVT-CON-01,DC-CONCORD-NC,2026-10-27,480,DELAY,DRIVER_APP,TRC-CON-004,,,25,,,,,,"Dock congestion at previous stop, driver waiting for a door"
 EVT-PHO-01,DC-PHOENIX-AZ,2026-10-27,390,ROAD_CLOSURE,TRAFFIC_FEED,,,,,33.4,-111.83,4.0,3.0,,US-60 closed both directions at Mesa Dr after a fuel spill
+EVT-PHO-02,DC-PHOENIX-AZ,2026-10-27,613,DWELL_OVERRUN,GEOFENCE,TRC-PHO-002,C-PHO-0033,,30,,,,,"{""geofence_id"": ""GF-C-PHO-0033"", ""route_id"": ""R-20261027-PHO-S02"", ""arrive_min"": 557, ""planned_service_min"": 41}",Truck still inside the geofence at Sub Station 66 #6208 15 min past the planned unload time (receiving backed up); expect about 30 min more

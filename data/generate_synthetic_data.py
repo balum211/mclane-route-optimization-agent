@@ -2,8 +2,18 @@
 
 Four distribution centers (two grocery/convenience, two foodservice), their
 stores and restaurants, fleet, drivers with hours of service, 7 days of open
-orders, 60 days of delivery history, traffic and weather events, the cost
-model, and the fixed "TMW static" routes the optimizer is benchmarked against.
+orders, 60 days of delivery history with geofence arrivals and departures,
+traffic and weather events, the cost model, the fixed "TMW static" routes the
+optimizer is benchmarked against (with PC*MILER miles), geofences, Retail and
+Restaurant OTD policies, and GPS pings for the first operating day.
+
+Planted patterns the agent should find:
+* about 7% of customers have a bad geocode in TMW (ZIP centroid, 0.5 to 1.6
+  miles off), so their geofence misses and arrivals come from the driver app;
+* about 13% of customers changed their dwell time in the last 14 days (new
+  receiving process, remodel, staffing, pre-scanned receiving);
+* restaurants are measured against the scheduled time, retail against the
+  receiving window.
 
 Everything is deterministic for a given --seed. All names are fictional.
 
@@ -27,7 +37,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from route_optimizer import pcmiler  # noqa: E402
 from route_optimizer.db.schema import TABLES, TABLES_BY_NAME, bigquery_schema_json, render_ddl  # noqa: E402
+from route_optimizer.geo import haversine_miles  # noqa: E402
+from route_optimizer.otd import DEFAULT_POLICIES, is_on_time, policy_rows, segment_group  # noqa: E402
 from route_optimizer.planning import (  # noqa: E402
     cost_model_from_row,
     depot_point,
@@ -133,7 +146,7 @@ def short(dc_id: str) -> str:
   return dc_id.split("-")[1][:3]
 
 
-def gen_customers(rng: random.Random, dc: dict) -> list[dict]:
+def gen_customers(rng: random.Random, dc: dict, xr: random.Random) -> list[dict]:
   segs = ["CONVENIENCE", "GROCERY", "MASS_MERCHANT"] if dc["business_unit"] == "GROCERY" else ["QSR", "CASUAL_DINING"]
   weights = [SEGMENTS[s]["share"] for s in segs]
   rows = []
@@ -171,7 +184,48 @@ def gen_customers(rng: random.Random, dc: dict) -> list[dict]:
     # Big-box and strategic grocery accounts book dock appointments.
     r = rows[-1]
     r["hard_window"] = seg == "MASS_MERCHANT" or (seg == "GROCERY" and r["priority_tier"] == 1)
+    # Where the dock really is versus what TMW has. Most are rooftop geocodes a
+    # few meters off; some were geocoded to the ZIP centroid and are far off.
+    r["_true_lat"], r["_true_lon"] = lat, lon
+    u = xr.random()
+    if u < 0.07:
+      r["lat"], r["lon"] = offset(lat, lon, xr.uniform(0.5, 1.6), xr.uniform(0, 360))
+      r["geocode_source"], r["geocode_confidence"] = "ZIP_CENTROID", "LOW"
+    else:
+      r["lat"], r["lon"] = offset(lat, lon, xr.uniform(0.005, 0.03), xr.uniform(0, 360))
+      r["geocode_source"], r["geocode_confidence"] = "ADDRESS_ROOFTOP", "HIGH" if u > 0.25 else "MEDIUM"
   return rows
+
+
+def geofence_radius_m(c: dict) -> int:
+  if c["segment"] == "MASS_MERCHANT":
+    return 300
+  return 200 if c["segment"] in ("GROCERY", "CASUAL_DINING") else 150
+
+
+def gen_geofences(dc: dict, customers: list[dict]) -> list[dict]:
+  rows = [{"geofence_id": f"GF-{dc['dc_id']}", "entity_type": "DC", "entity_id": dc["dc_id"], "dc_id": dc["dc_id"],
+           "center_lat": dc["lat"], "center_lon": dc["lon"], "radius_m": 450, "source": "MASTER_DATA", "active": True}]
+  for c in customers:
+    rows.append({"geofence_id": f"GF-{c['customer_id']}", "entity_type": "CUSTOMER", "entity_id": c["customer_id"],
+                 "dc_id": dc["dc_id"], "center_lat": c["lat"], "center_lon": c["lon"], "radius_m": geofence_radius_m(c),
+                 "source": "MASTER_DATA", "active": True})
+  return rows
+
+
+def inside_own_geofence(c: dict) -> bool:
+  """Would a truck parked at the real dock trip the master-data geofence?"""
+  return haversine_miles(c["lat"], c["lon"], c["_true_lat"], c["_true_lon"]) * 1609.344 <= geofence_radius_m(c)
+
+
+DWELL_CHANGES = [("NEW_RECEIVING_PROCESS", 1.35, 1.6), ("STORE_REMODEL", 1.4, 1.8), ("STAFFING_SHORTAGE", 1.25, 1.45),
+                 ("PRE_SCANNED_RECEIVING", 0.65, 0.8)]
+
+
+def gen_dwell_changes(xr: random.Random, customers: list[dict]) -> dict[str, tuple[str, float]]:
+  """Customers whose real dwell shifted in the last 14 days, and by how much."""
+  return {c["customer_id"]: (lambda k: (k[0], xr.uniform(k[1], k[2])))(xr.choice(DWELL_CHANGES))
+          for c in customers if xr.random() < 0.13}
 
 
 def gen_fleet(rng: random.Random, dc: dict, peak_daily_cases: int):
@@ -251,12 +305,14 @@ def gen_orders(rng: random.Random, dc: dict, customers: list[dict], start: dt.da
   return rows
 
 
-def gen_history(rng: random.Random, dc: dict, customers: list[dict], end: dt.date, days: int):
+def gen_history(rng: random.Random, dc: dict, customers: list[dict], end: dt.date, days: int,
+                xr: random.Random, tractors: list[str], changes: dict[str, tuple[str, float]]):
   rows = []
   # Each customer has a "true" dwell that differs from TMS master data, which
   # is the gap learned_service_minutes() closes.
   truth = {c["customer_id"]: c["std_service_min"] * rng.uniform(0.85, 1.6) for c in customers}
   dock_busy = {c["customer_id"]: rng.random() < 0.12 for c in customers}
+  recent_from = end - dt.timedelta(days=14)
   n = 0
   for d in range(days, 0, -1):
     date = end - dt.timedelta(days=d)
@@ -271,19 +327,34 @@ def gen_history(rng: random.Random, dc: dict, customers: list[dict], end: dt.dat
       delay = {"NONE": rng.gauss(0, 12), "TRAFFIC": rng.uniform(20, 95), "WEATHER": rng.uniform(15, 80),
                "DOCK_BUSY": rng.uniform(5, 40), "LATE_DISPATCH": rng.uniform(30, 120), "REFUSED": rng.uniform(0, 20)}[exc]
       actual = int(planned + delay)
-      dwell = int(max(8, rng.gauss(truth[c["customer_id"]], truth[c["customer_id"]] * 0.18)
-                      + (rng.uniform(10, 35) if exc == "DOCK_BUSY" else 0)))
+      base = truth[c["customer_id"]]
+      shift = changes.get(c["customer_id"])
+      if shift and date >= recent_from:
+        base *= shift[1]
+      dwell = int(max(8, rng.gauss(base, base * 0.18) + (rng.uniform(10, 35) if exc == "DOCK_BUSY" else 0)))
       prof = SEGMENTS[c["segment"]]
+      # Geofence catches the arrival unless the TMW geocode is off or the GPS
+      # dropped out; then the driver taps arrive/depart in the app, a bit late.
+      geofenced = inside_own_geofence(c) and xr.random() > 0.03
+      arrive = actual if geofenced else actual + xr.randint(0, 9)
+      depart = actual + dwell if geofenced else actual + dwell + xr.randint(0, 6)
+      slat, slon = offset(c["_true_lat"], c["_true_lon"], xr.uniform(0, 0.015), xr.uniform(0, 360))
+      pol = DEFAULT_POLICIES[segment_group(c["segment"])]
       rows.append({
           "delivery_id": f"H-{short(dc['dc_id'])}-{date:%Y%m%d}-{n:06d}",
           "customer_id": c["customer_id"],
           "dc_id": dc["dc_id"],
           "delivery_date": date.isoformat(),
+          "tractor_id": xr.choice(tractors),
           "planned_arrival_min": planned,
-          "actual_arrival_min": actual,
-          "dwell_min": dwell,
+          "actual_arrival_min": arrive,
+          "actual_departure_min": depart,
+          "arrival_source": "GEOFENCE" if geofenced else "DRIVER_APP",
+          "dwell_min": depart - arrive,
+          "gps_stop_lat": slat,
+          "gps_stop_lon": slon,
           "cases": rng.randint(*prof["cases"]),
-          "on_time": c["window_start_min"] <= actual <= c["window_end_min"],
+          "on_time": is_on_time(pol, arrive, c["window_start_min"], c["window_end_min"], planned),
           "exception_code": exc,
       })
   return rows
@@ -322,7 +393,8 @@ def gen_events(start: dt.date, days: int):
   return [dict(zip(t_cols, t)) for t in traffic], [dict(zip(w_cols, w)) for w in weather]
 
 
-def gen_route_events(dc: dict, customers: list[dict], orders: list[dict], start: dt.date) -> list[dict]:
+def gen_route_events(dc: dict, customers: list[dict], orders: list[dict], start: dt.date,
+                     overrun: dict | None = None) -> list[dict]:
   """Day-one disruption scenarios that the event handler re-plans around."""
   code = short(dc["dc_id"])
   date = start.isoformat()
@@ -358,6 +430,14 @@ def gen_route_events(dc: dict, customers: list[dict], orders: list[dict], start:
   elif code == "PHO":
     add(1, 390, "ROAD_CLOSURE", "TRAFFIC_FEED", "US-60 closed both directions at Mesa Dr after a fuel spill",
         lat=33.40, lon=-111.83, radius_miles=4.0, delay_factor=3.0)
+    if overrun:
+      add(2, overrun["event_min"], "DWELL_OVERRUN", "GEOFENCE",
+          f"Truck still inside the geofence at {overrun['name']} {overrun['over_min']} min past the planned unload time "
+          f"(receiving backed up); expect about {overrun['delay_min']} min more",
+          tractor_id=overrun["tractor_id"], customer_id=overrun["customer_id"], delay_min=overrun["delay_min"],
+          payload={"geofence_id": f"GF-{overrun['customer_id']}", "route_id": overrun["route_id"],
+                   "arrive_min": overrun["arrive_min"],
+                   "planned_service_min": overrun["planned_service_min"]})
   elif code == "CON":
     add(1, 480, "DELAY", "DRIVER_APP", "Dock congestion at previous stop, driver waiting for a door",
         tractor_id=f"TRC-{code}-004", delay_min=25)
@@ -382,7 +462,7 @@ def build_static_routes(dc, customers, fleet, orders, history, traffic, weather,
   by_id = {c["customer_id"]: c for c in customers}
   service = {c["customer_id"]: c["std_service_min"] for c in customers}  # TMW uses master data
   vehicles = vehicles_from_rows(dc, tractors, trailers, drivers)
-  route_rows, stop_rows = [], []
+  route_rows, stop_rows, executed = [], [], []
   for k in range(days):
     date = (start + dt.timedelta(days=k)).isoformat()
     day_orders = [o for o in orders if o["delivery_date"] == date]
@@ -392,22 +472,116 @@ def build_static_routes(dc, customers, fleet, orders, history, traffic, weather,
     dis = disruptions_from_rows([t for t in traffic if t["event_date"] == date],
                                 [w for w in weather if w["event_date"] == date])
     plan = static_tmw_plan(depot_point(dc), stops, vehicles, cost_model_from_row(costs), dis)
+    pcmiler.stamp_routes(plan.routes, depot_point(dc))
     for i, r in enumerate(plan.routes, start=1):
       rid = f"R-{date.replace('-', '')}-{short(dc['dc_id'])}-S{i:02d}"
+      if k == 0:
+        executed.append((rid, r))
       route_rows.append({
           "route_id": rid, "plan_id": None, "source": "TMW_STATIC", "dc_id": dc["dc_id"], "route_date": date,
           "tractor_id": r.vehicle.tractor_id, "trailer_id": r.vehicle.trailer_id, "driver_id": r.vehicle.driver_id,
           "depart_min": r.depart_min, "return_min": r.return_min, "stop_count": len(r.stops),
-          "total_miles": round(r.total_miles, 1), "total_duration_min": r.duration_min, "total_cases": r.cases,
+          "total_miles": round(r.total_miles, 1), "pcmiler_miles": r.pcmiler_miles, "mileage_source": r.mileage_source,
+          "total_duration_min": r.duration_min, "total_cases": r.cases,
           "est_cost_usd": round(r.cost_usd, 2), "late_stops": r.late_stops, "status": "PLANNED",
       })
       for s in r.stops:
         stop_rows.append({
             "route_id": rid, "stop_seq": s.seq, "order_id": s.order_id, "customer_id": s.customer_id,
             "eta_min": s.arrival_min, "etd_min": s.departure_min, "miles_from_prev": round(s.miles_from_prev, 1),
-            "window_ok": s.late_min == 0,
+            "pcmiler_leg_miles": s.pcmiler_leg_miles, "window_ok": s.late_min == 0,
         })
-  return route_rows, stop_rows
+  return route_rows, stop_rows, executed
+
+
+PING_EVERY_MIN = 5
+
+
+def gen_gps_pings(xr: random.Random, dc: dict, date: dt.date, executed, customers: dict[str, dict],
+                  stalls: dict[str, tuple[int, int]], breakdowns: dict[str, int], overrun_pick: tuple[int, int] | None):
+  """Telematics replay of the TMW static routes on the first operating day.
+
+  Trucks drive to where the dock really is (not the TMW geocode), legs run a
+  little slower or faster than planned, unload times vary, DELAY events stall
+  the truck and a BREAKDOWN freezes it. Returns the pings and, when
+  ``overrun_pick`` = (route number, stop number) is given, the details of a
+  planted dwell overrun.
+  """
+  pings, overrun = [], None
+  home = (float(dc["lat"]), float(dc["lon"]))
+  for n_route, (rid, r) in enumerate(executed, start=1):
+    tractor = r.vehicle.tractor_id
+    segs = []  # (t0, t1, from, to)
+    t, here, prev_dep = r.depart_min, home, r.depart_min
+    segs.append((r.depart_min - 15, r.depart_min, home, home))
+    for k, s in enumerate(r.stops, start=1):
+      c = customers[s.customer_id]
+      dock = (c["_true_lat"], c["_true_lon"])
+      leg = max(1, int((s.arrival_min - prev_dep) * xr.uniform(0.95, 1.12)))
+      segs.append((t, t + leg, here, dock))
+      t += leg
+      start = max(t, s.window_start)
+      planned_service = s.departure_min - s.service_start_min
+      dwell = int(planned_service * xr.uniform(0.85, 1.2))
+      if overrun_pick == (n_route, k):
+        dwell = planned_service + 45
+        overrun = {"tractor_id": tractor, "route_id": rid, "customer_id": s.customer_id, "name": c["name"],
+                   "arrive_min": t, "planned_service_min": planned_service, "event_min": start + planned_service + 15,
+                   "over_min": 15, "delay_min": 30}
+      segs.append((t, start + dwell, dock, dock))
+      t, here, prev_dep = start + dwell, dock, s.departure_min
+    back = max(1, int((r.return_min - prev_dep) * xr.uniform(0.95, 1.1)))
+    segs.append((t, t + back, here, home))
+    segs.append((t + back, t + back + 10, home, home))
+
+    # Delay: the truck stands still for the reported minutes.
+    if tractor in stalls:
+      at, minutes = stalls[tractor]
+      out = []
+      for (a, b, p0, p1) in segs:
+        if a < at < b and p0 != p1:
+          f = (at - a) / (b - a)
+          mid = (p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f)
+          out += [(a, at, p0, mid), (at, at + minutes, mid, mid), (at + minutes, b + minutes, mid, p1)]
+        elif a >= at and any(x[0] < at < x[1] for x in segs):
+          out.append((a + minutes, b + minutes, p0, p1))
+        else:
+          out.append((a, b, p0, p1))
+      segs = out
+    stop_at = breakdowns.get(tractor)
+
+    def where(m):
+      for (a, b, p0, p1) in segs:
+        if a <= m <= b:
+          f = 0 if b == a else (m - a) / (b - a)
+          moving = p0 != p1
+          lat, lon = p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f
+          mph = haversine_miles(*p0, *p1) / max(b - a, 1) * 60 if moving else 0.0
+          return lat, lon, mph
+      return None
+
+    end = segs[-1][1]
+    if stop_at is not None:
+      frozen = where(stop_at)
+      end = stop_at + 240
+    m = segs[0][0] - segs[0][0] % PING_EVERY_MIN
+    while m <= end:
+      if stop_at is not None and m >= stop_at and frozen:
+        lat, lon, mph = frozen[0], frozen[1], 0.0
+      else:
+        w = where(m)
+        if w is None:
+          m += PING_EVERY_MIN
+          continue
+        lat, lon, mph = w
+      lat, lon = offset(lat, lon, xr.uniform(0, 0.006), xr.uniform(0, 360))
+      pings.append({
+          "ping_id": f"P-{tractor}-{date:%Y%m%d}-{m:04d}", "dc_id": dc["dc_id"], "ping_date": date.isoformat(),
+          "ping_min": m, "tractor_id": tractor, "route_id": rid, "lat": lat, "lon": lon,
+          "speed_mph": round(max(0.0, mph * xr.uniform(0.85, 1.1)) if mph else xr.choice([0.0, 0.0, 0.4]), 1),
+      })
+      m += PING_EVERY_MIN
+  return pings, overrun
 
 
 def write_csv(path: Path, table: str, rows: list[dict]):
@@ -467,6 +641,7 @@ def main(argv=None):
   args = ap.parse_args(argv)
 
   rng = random.Random(args.seed)
+  xr = random.Random(args.seed * 7919)  # draws for the location features, kept apart from the base data
   start = dt.date.fromisoformat(args.start)
   out = Path(args.out)
   out.mkdir(parents=True, exist_ok=True)
@@ -474,30 +649,52 @@ def main(argv=None):
   data: dict[str, list[dict]] = {t.name: [] for t in TABLES}
   traffic, weather = gen_events(start, args.days)
   data["traffic_events"], data["weather_events"] = traffic, weather
+  data["otd_policies"] = policy_rows()
   seq = [5_100_000]
   for dc in DCS:
     dc_row = {k: v for k, v in dc.items() if k in TABLES_BY_NAME["distribution_centers"].column_names}
     data["distribution_centers"].append(dc_row)
-    customers = gen_customers(rng, dc)
+    customers = gen_customers(rng, dc, xr)
     orders = gen_orders(rng, dc, customers, start, args.days, seq)
     daily: dict[str, int] = {}
     for o in orders:
       daily[o["delivery_date"]] = daily.get(o["delivery_date"], 0) + o["dry_cases"] + o["chill_cases"] + o["frozen_cases"]
     fleet = gen_fleet(rng, dc, max(daily.values()))
-    history = gen_history(rng, dc, customers, start, args.history_days)
+    changes = gen_dwell_changes(xr, customers)
+    road = [tr["tractor_id"] for tr in fleet[0] if tr["status"] == "AVAILABLE"]
+    history = gen_history(rng, dc, customers, start, args.history_days, xr, road, changes)
     costs = gen_costs(dc, rng)
-    routes, stops = build_static_routes(dc_row, customers, fleet, orders, history, traffic, weather, costs, start, args.days)
+    routes, stops, executed = build_static_routes(dc_row, customers, fleet, orders, history, traffic, weather, costs,
+                                                  start, args.days)
+    events = gen_route_events(dc, customers, orders, start)
+    stalls = {e["tractor_id"]: (e["event_min"], int(e["delay_min"])) for e in events
+              if e["event_type"] == "DELAY" and e["tractor_id"]}
+    breakdowns = {e["tractor_id"]: e["event_min"] for e in events if e["event_type"] == "BREAKDOWN"}
+    pings, overrun = gen_gps_pings(xr, dc_row, start, executed, {c["customer_id"]: c for c in customers}, stalls,
+                                   breakdowns, (2, 3) if short(dc["dc_id"]) == "PHO" else None)
+    if overrun:
+      events = gen_route_events(dc, customers, orders, start, overrun)
     data["customers"] += customers
+    data["geofences"] += gen_geofences(dc_row, customers)
     data["tractors"] += fleet[0]
     data["trailers"] += fleet[1]
     data["drivers"] += fleet[2]
     data["orders"] += orders
     data["delivery_history"] += history
     data["cost_parameters"].append(costs)
-    data["route_events"] += gen_route_events(dc, customers, orders, start)
+    data["route_events"] += events
     data["routes"] += routes
     data["route_stops"] += stops
+    data["gps_pings"] += pings
+    data["_dwell_changes"] = data.get("_dwell_changes", []) + [
+        {"customer_id": cid, "cause": cause, "factor": round(f, 2)} for cid, (cause, f) in changes.items()]
 
+  truth = data.pop("_dwell_changes", [])
+  (out / "_planted_patterns.json").write_text(json.dumps({
+      "note": "Ground truth for tests and demos. Not loaded into any database.",
+      "dwell_changes_last_14_days": truth,
+      "bad_geocodes": [c["customer_id"] for c in data["customers"] if c["geocode_source"] == "ZIP_CENTROID"],
+  }, indent=1))
   for name, rows in data.items():
     write_csv(out / f"{name}.csv", name, rows)
   write_sqlite(Path(args.sqlite), data)

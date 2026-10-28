@@ -27,13 +27,13 @@
     "name": "event_type",
     "type": "STRING",
     "mode": "NULLABLE",
-    "description": "DELAY, BREAKDOWN, ORDER_ADDED, ORDER_CANCELLED, ROAD_CLOSURE, NO_SHOW, REEFER_TEMP_ALERT"
+    "description": "DELAY, BREAKDOWN, ORDER_ADDED, ORDER_CANCELLED, ROAD_CLOSURE, NO_SHOW, REEFER_TEMP_ALERT, DWELL_OVERRUN"
   },
   {
     "name": "source",
     "type": "STRING",
     "mode": "NULLABLE",
-    "description": "TELEMATICS, DRIVER_APP, TMS, TRAFFIC_FEED, CUSTOMER"
+    "description": "TELEMATICS, GEOFENCE, DRIVER_APP, TMS, TRAFFIC_FEED, CUSTOMER"
   },
   {
     "name": "tractor_id",

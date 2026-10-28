@@ -42,6 +42,12 @@
     "description": "Leg miles"
   },
   {
+    "name": "pcmiler_leg_miles",
+    "type": "FLOAT",
+    "mode": "NULLABLE",
+    "description": "PC*MILER leg miles from the previous stop"
+  },
+  {
     "name": "window_ok",
     "type": "BOOLEAN",
     "mode": "NULLABLE",

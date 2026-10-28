@@ -14,7 +14,12 @@ dependencies = [
   "pg8000>=1.31",
   "google-cloud-alloydb-connector[pg8000]>=1.4",
   "google-cloud-pubsub>=2.21",
+  "uvicorn>=0.30",
 ]
+
+[project.optional-dependencies]
+# Read-only SQL tools from MCP Toolbox for Databases (tools.yaml); `uv sync --extra toolbox`.
+toolbox = ["toolbox-core>=1.0"]
 
 [dependency-groups]
 dev = ["pytest>=8"]
